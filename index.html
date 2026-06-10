@@ -1379,6 +1379,7 @@ function newSeason(){
       pushNews("🎓 Academia: "+n+" novos talentos","Chegaram "+n+" jovens de 16 anos. Desenvolvem-se até aos 21 — quem não for promovido sai para a bolsa de Jogadores Livres."+(exit21.length?" Saíram agora: "+exit21.map(p=>p.n).join(", ")+".":""));
     }
   });
+  G.offersIn=(G.offersIn||[]).filter(o=>!o.dead).slice(-10);
   G.season++;buildSeason(G.season);G.matchesPlayed=0;G.windowOpen=true;
   if(!G.revenue||G.revenue.season)G.revenue={season:{tickets:0,ads:0,total:0},lastAdMonth:-1};
   // obras concluídas
@@ -1453,7 +1454,8 @@ function renderMarket(c){
    <div class="card"><h3>Janela de transferências</h3>
     <p style="font-size:13.5px">${G.windowOpen?"🟢 Mercado aberto — podes comprar e vender.":"🔴 Mercado fechado. Reabre em janeiro/julho."}</p>
     <div class="kv"><span>Orçamento disponível</span><b style="color:var(--amber)">${fmtM(t.budget)}</b></div></div>
-   ${offers.length?`<div class="card"><h3>Propostas recebidas</h3>${offers.map((o,i)=>{
+   ${offers.length?`<div class="card"><h3>Propostas recebidas</h3>${G.offersIn.map((o,i)=>{
+     if(o.dead)return"";
      const p=t.players.find(x=>x.id===o.pid);if(!p){o.dead=1;return""}
      return `<div class="inbox-item"><b>${G.teams[o.from].n} oferece ${fmtM(o.amt)} por ${p.n}</b>
       <p>Overall ${p.ovr} · valor de mercado ${fmtM(value(p))}</p>
@@ -1524,9 +1526,10 @@ function signFree(pid){
   saveGame();refreshHeader();setTab("market");
 }
 function acceptOffer(i){
-  const o=G.offersIn[i],t=G.teams[G.my],buyer=G.teams[o.from];
+  const o=G.offersIn[i];if(!o||o.dead){setTab("market");return;}
+  const t=G.teams[G.my],buyer=G.teams[o.from];
   const p=t.players.find(x=>x.id===o.pid);
-  if(!p){o.dead=1;return}
+  if(!p){o.dead=1;setTab("market");return}
   t.budget+=o.amt;buyer.budget=Math.max(0,buyer.budget-o.amt);
   t.players=t.players.filter(x=>x.id!==o.pid);
   Object.keys(G.tactic.grid).forEach(k=>{if(G.tactic.grid[k].pid===o.pid)delete G.tactic.grid[k]});
@@ -1535,7 +1538,7 @@ function acceptOffer(i){
   pushNews("✈ Venda concluída",p.n+" deixa o clube rumo ao "+buyer.n+" por "+fmtM(o.amt)+".");
   saveGame();refreshHeader();setTab("market");
 }
-function rejectOffer(i){G.offersIn[i].dead=1;setTab("market")}
+function rejectOffer(i){if(G.offersIn[i])G.offersIn[i].dead=1;setTab("market")}
 function marketAI(){ // a IA faz propostas e negoceia entre si nas janelas
   // contratação de livres (acontece a qualquer altura — os bons voam!)
   if(G.freeAgents&&G.freeAgents.length&&Math.random()<0.45){
