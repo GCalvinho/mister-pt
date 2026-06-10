@@ -492,6 +492,12 @@ function value(p){
   return Math.max(25,Math.round(Math.pow(Math.max(p.ovr-40,5),2.15)*af*1.45))*1000;
 }
 const fmtM=v=>v>=1e6?(v/1e6).toFixed(v>=1e7?0:1).replace(".",",")+" M€":Math.round(v/1e3)+" mil €";
+function potStars(p){
+  if(!p.pot||p.pot<0.02)return '<span class="sub" style="font-size:10px">—</span>';
+  const n=p.pot>=0.22?5:p.pot>=0.15?4:p.pot>=0.09?3:p.pot>=0.05?2:1;
+  const col=n>=5?'var(--amber)':n>=4?'var(--ok)':n>=3?'#7ab4c5':'var(--muted)';
+  return `<span style="color:${col};letter-spacing:2px;font-size:13px">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
+}
 
 /* Preenche plantéis até 18 jogadores com jogadores plausíveis do clube */
 const NEEDS=["GR","DD","DC","DC","DE","MDF","MC","MC","MCO","EXT","EXT","PL","DC","DD","MC","EXT","PL","GR"];
@@ -694,7 +700,9 @@ function renderSquad(c){
    </div>`).join("")}</div>`;
 }
 function playerSheet(id){
-  const p=G.teams.flatMap(t=>t.players).find(x=>x.id===id);
+  const p=G.teams.flatMap(t=>[...t.players,...(t.academy&&t.academy.players||[])]).find(x=>x.id===id);
+  if(!p)return;
+  const inAcad=G.teams[p.t].academy&&G.teams[p.t].academy.players.some(x=>x.id===id);
   const mine=p.t===G.my,gk=p.nr==="GR";
   const names=gk?ATTR_NAMES_GK:ATTR_NAMES_F;
   const bars=p.a.map((v,i)=>`<div class="attr-row"><div class="al">${names[i]}</div>
@@ -712,7 +720,8 @@ function playerSheet(id){
    <div class="kv"><span>Potencial</span><b>${potStars(p)}</b></div>
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
-   ${mine?`<button class="btn ghost" onclick="toggleList(${p.id})">${p.listed?"Retirar da lista de transferências":"Colocar na lista de transferências"}</button>`:
+   ${inAcad?(mine?`<button class="btn" onclick="promotePlayer(${p.id})">↑ Promover ao plantel</button>`:""):
+     mine?`<button class="btn ghost" onclick="toggleList(${p.id})">${p.listed?"Retirar da lista de transferências":"Colocar na lista de transferências"}</button>`:
      `<button class="btn" onclick="bidFlow(${p.id})">Fazer proposta</button>`}`);
 }
 function toggleList(id){const p=G.teams[G.my].players.find(x=>x.id===id);p.listed=p.listed?0:1;closeSheet();toast(p.listed?"Na lista de transferências":"Retirado da lista");if(tab==="squad")setTab("squad")}
