@@ -464,16 +464,19 @@ const ZONE_ROLES=(r,c)=>{
 };
 const BAND=r=>r===0?"gk":r<=2?(r===1?"def":"dm"):r===3?"mid":r===4?"am":"atk";
 function roleOvr(p,role){const w=ROLES[role].w;return p.a[0]*w[0]+p.a[1]*w[1]+p.a[2]*w[2]+p.a[3]*w[3]+p.a[4]*w[4]}
+const FAM={GR:0,DL:1,CEN:1,MDF:2,B2B:2,MCR:2,ALA:2,EXT:3,AVI:3,PL:3,F9:3};
 function effOvr(p,role){
   if(role===p.nr)return roleOvr(p,role);
   const isGK=p.nr==="GR",toGK=role==="GR";
   if(isGK!==toGK)return p.ovr*0.55;           // jogador de campo à baliza (ou vice-versa)
+  const dist=Math.abs(FAM[role]-FAM[p.nr]);   // mesma família: até -4%; mudar de setor custa mais
   const ro=roleOvr(p,role),nat=p.ovr;
-  return Math.min(nat,Math.max(ro,nat*0.96)); // penalização máx. 4% conforme afinidade
+  if(dist===0)return Math.min(nat,Math.max(ro,nat*0.96));
+  return Math.min(nat,ro)*(dist===1?0.93:0.85);
 }
 function genAttrs(role,ovr){
   const w=ROLES[role].w,a=[];
-  for(let i=0;i<5;i++){const bias=(w[i]-0.2)*46;a.push(clamp(ovr+bias+rnd(-5,5),20,99));}
+  for(let i=0;i<5;i++){const bias=(w[i]-0.2)*110;a.push(clamp(ovr+bias+rnd(-5,5),20,99));}
   const cur=a.reduce((s,v,i)=>s+v*w[i],0),f=ovr/cur;     // calibra para o overall alvo
   return a.map(v=>clamp(Math.round(v*f),15,99));
 }
@@ -935,7 +938,7 @@ function sectors(xi,T){
 const COMM={
   meio:["{a} a trocar a bola no meio-campo.","Jogo morno por agora, muita luta no miolo.","{a} tenta sair a jogar desde trás.","Posse dividida, ninguém consegue assentar o jogo.","Falta no meio-campo, livre para {a}.","{a} a circular com paciência, à procura de espaço."],
   chance:["{p} arranca pela faixa e cruza para a área...","Que jogada de {p}! Deixa o adversário para trás...","{p} abre na ala, cruzamento tenso...","Bola em profundidade para {p}, que aparece isolado...","{p} combina à entrada da área e surge na cara do golo...","Canto curto, a bola sobra para {p}..."],
-  golo:["GOOOLO DO {T}!!! {p} a faturar! Que momento!","ESTÁ LÁ DENTRO!!! {p} não perdoa! Golo do {T}!","GOLO, GOLO, GOLO! {p} fuzila e a bola morre no fundo das redes!","É GOLO! {p} aparece na área e empurra para o golo do {T}!","QUE GOLAÇO DE {p}!!! O estádio vem abaixo!"],
+  golo:["GOOOLO DO {T}!!! {p} a faturar! Que momento!","ESTÁ LÁ DENTRO!!! {p} não perdoa! Golo do {T}!","GOLO, GOLO, GOLO! {p} fuzila e a bola morre no fundo das redes!","AÍ ESTÁ O GOLO!!! {p} faz o gosto ao pé! Golo do {T}!","QUE GRANDE GOLO DE {p}!!! O estádio vem abaixo!","É GOLO! {p} aparece na área e empurra para o fundo das redes! Festeja o {T}!"],
   defesa:["...mas que defesa de {g}! Voa para negar o golo!","...{g} diz que não! Enorme intervenção!","...remate forte, {g} segura em dois tempos.","...{g} fecha a baliza! Que mão!"],
   fora:["...remata por cima! Que desperdício!","...ao lado do poste! Por pouco!","...e a bola passa a rasar a trave! Sustos na bancada!","...atira para as nuvens. Tinha tudo para fazer melhor."],
   poste:["...AO POSTE!!! A baliza tremeu e o golo não veio!","...NA TRAVE! Incrível, a bola não quis entrar!"],
@@ -990,8 +993,9 @@ function stepMinute(){
   if(M.Th.posse)ph+=0.02;if(M.Ta.posse)ph-=0.02;
   // probabilidade de lance de perigo por minuto
   const base=0.115;
-  const chH=base*(0.55+ph)*(sh.atk/(sa.def+sh.atk))*2*( M.Th.contra&&M.Ta.ment===2?1.15:1);
-  const chA=base*(0.55+(1-ph))*(sa.atk/(sh.def+sa.atk))*2*(M.Ta.contra&&M.Th.ment===2?1.15:1);
+  let chH=base*(0.55+ph)*(sh.atk/(sa.def+sh.atk))*2*( M.Th.contra&&M.Ta.ment===2?1.15:1);
+  let chA=base*(0.55+(1-ph))*(sa.atk/(sh.def+sa.atk))*2*(M.Ta.contra&&M.Th.ment===2?1.15:1);
+  if(M.mom&&M.mom.kind==="cut"&&M.min-M.mom.min<=2){if(M.mom.side===1)chH*=1.6;else chA*=1.6;}
   const r=Math.random();
   if(r<chH)attack(1,sh,sa);else if(r<chH+chA)attack(0,sa,sh);
   else if(Math.random()<0.10)addLine("",line(COMM.meio,{a:Math.random()<ph?M.th.n:M.ta.n}),M.min);
@@ -1005,35 +1009,87 @@ function stepMinute(){
   updScore();
   if(M.min>=90+ri(1,4))endMatch();
 }
-function attack(home,SA,SD){
-  const XA=home?M.xh:M.xa, XD=home?M.xa:M.xh, TT=home?M.th:M.ta;
+function attack(home,SA,SD,counter){
+  const XA=home?M.xh:M.xa, XD=home?M.xa:M.xh, TT=home?M.th:M.ta, TD=home?M.ta:M.th;
   const atts=XA.filter(x=>x.band==="atk"||x.band==="am");
   const shooter=(atts.length?weightedPick(atts,x=>x.p.a[1]+x.p.a[4]):pick(XA.filter(x=>x.band!=="gk"))).p;
-  // corte?
+  const mids=XA.filter(x=>x.band==="mid"||x.band==="am"||x.band==="dm");
+  const creator=mids.length?weightedPick(mids,x=>x.p.a[0]).p:null;
+  const fromCut=!counter&&M.mom&&M.mom.kind==="cut"&&M.mom.side===home&&M.min-M.mom.min<=2;
+  if(fromCut)M.mom=null;
+  const longShot=!counter&&!fromCut&&Math.random()<0.18;
+  /* construção narrada */
+  if(counter){
+    addLine("perigo",pick([
+      "Transição rapidíssima! "+(creator?creator.n+" lança":"Lança-se")+" o contra-ataque e a bola chega a "+shooter.n+"...",
+      "Roubada a bola, o "+TT.s+" sai como um raio! "+shooter.n+" recebe em velocidade...",
+      "Contra-ataque mortífero do "+TT.s+"! "+shooter.n+" aparece isolado..."]),M.min);
+  } else if(fromCut){
+    addLine("perigo",pick([
+      "Na sequência da recuperação, o "+TT.s+" sai a jogar"+(creator?": "+creator.n+" encontra "+shooter.n+" em zona perigosa...":" e a bola chega a "+shooter.n+"..."),
+      "O "+TT.s+" aproveita o embalo! "+(creator?creator.n+" rasga a defesa e isola "+shooter.n+"...":shooter.n+" surge em boa posição...")]),M.min);
+  } else if(longShot){
+    addLine("perigo",pick([
+      shooter.n+" arma o remate de fora da área...",
+      "A defesa do "+TD.s+" atrasa-se e "+shooter.n+" prepara o pé de longe...",
+      (creator?creator.n+" toca atrasado para "+shooter.n+", que vai arriscar de longe...":shooter.n+" ajeita o corpo para o remate de longa distância...")]),M.min);
+  } else {
+    if(creator&&Math.random()<0.55)
+      addLine("perigo",pick([
+        creator.n+" conduz no meio-campo, abre o jogo e a bola chega a "+shooter.n+"...",
+        "Boa construção do "+TT.s+": "+creator.n+" encontra espaço e isola "+shooter.n+"...",
+        creator.n+" tira dois adversários do caminho e serve "+shooter.n+"..."]),M.min);
+    else addLine("perigo",line(COMM.chance,{p:shooter.n}),M.min);
+  }
+  /* corte da defesa (raro em contra-ataques e remates de longe) */
   const defs=XD.filter(x=>x.band==="def"||x.band==="dm");
-  const cutP=clamp((SD.def-SA.atk)/120+0.34,0.12,0.6);
-  addLine("perigo",line(COMM.chance,{p:shooter.n}),M.min);
+  let cutP=clamp((SD.def-SA.atk)/120+0.34,0.12,0.6);
+  if(counter)cutP*=0.55; if(longShot)cutP*=0.4; if(fromCut)cutP*=0.75;
   if(Math.random()<cutP){
     const dx=defs.length?weightedPick(defs,x=>x.p.a[2]):null;
     addLine("",line(COMM.corte,{d:dx?dx.p.n:"a defesa"}),M.min);
-    foulMaybe(dx,XD,home);return;
+    foulMaybe(dx,XD,home);
+    M.mom={side:home?0:1,kind:"cut",min:M.min};
+    if(!counter&&Math.random()<0.30&&M.min<89){ // contra-ataque imediato, devidamente narrado
+      const SH=sectors(M.xh,M.Th),SAa=sectors(M.xa,M.Ta);
+      attack(home?0:1,home?SAa:SH,home?SH:SAa,true);
+    }
+    return;
   }
-  // remate: golo / defesa / fora / poste
+  /* remate */
   const gk=XD.find(x=>x.band==="gk");
   const gq=gk?(gk.p.a[1]+gk.p.a[2])/2*(0.62+0.38*gk.p.sta/100):40;
-  const pGoal=clamp(0.21+(shooter.a[1]-gq)/120,0.08,0.55);
+  let pGoal=clamp(0.21+(shooter.a[1]-gq)/120,0.08,0.55);
+  if(longShot)pGoal*=0.55; if(counter)pGoal*=1.25;
+  const big=pGoal>=0.30||counter;
   const rr=Math.random();
   if(rr<pGoal){
     if(home)M.gh++;else M.ga++;
     shooter.goals++;M.scorers.push({n:shooter.n,t:TT.i,min:M.min});
     const key=shooter.id;G.scorers[key]=G.scorers[key]||{n:shooter.n,t:TT.i,g:0};
     if(M.fx.c==="L1"||M.fx.c==="L2")G.scorers[key].g++;
-    addLine("gol",line(COMM.golo,{p:shooter.n,T:TT.s}),M.min);
+    if(longShot)addLine("gol",pick(["QUE TIRO DE "+shooter.n.toUpperCase()+"!!! A bola entra que nem um míssil! Golo do "+TT.s+"!","SAI UM MÍSSIL do pé de "+shooter.n+"!!! Direitinho ao fundo das redes! GOLO!"]),M.min);
+    else addLine("gol",line(COMM.golo,{p:shooter.n,T:TT.s}),M.min);
+    /* expressões contextuais */
+    const myG=home?M.gh:M.ga,opG=home?M.ga:M.gh;
+    if(myG-opG>=2&&M.min>=70)addLine("gol",pick(["Está feito! O "+TT.s+" matou o jogo!","Matou o jogo, "+shooter.n+"! Isto está praticamente decidido!"]),M.min);
+    else if(shooter.a[1]-gq>=14)addLine("gol","Sem hipótese para o guarda-redes!",M.min);
+    else if((counter||longShot)&&Math.random()<0.7)addLine("gol","É de levantar qualquer estádio!",M.min);
+    if(M.lastMiss&&M.lastMiss.side!==home&&M.min-M.lastMiss.min<=6)addLine("","Quem não marca sofre! A velha máxima do futebol a cumprir-se.",M.min);
+    else if(TT.base<=TD.base-8&&Math.random()<0.6)addLine("","O futebol tem destas coisas!",M.min);
+    M.lastMiss=null;M.mom=null;
     if(M.interactive){$("gol-sub").textContent=shooter.n+" · "+M.th.s+" "+M.gh+"–"+M.ga+" "+M.ta.s;
       $("golflash").classList.add("on");setTimeout(()=>$("golflash").classList.remove("on"),1400);}
-  } else if(rr<pGoal+0.36)addLine("",line(COMM.defesa,{g:gk?gk.p.n:"o guarda-redes"}),M.min);
-  else if(rr<pGoal+0.42)addLine("perigo",line(COMM.poste,{}),M.min);
-  else addLine("",line(COMM.fora,{}),M.min);
+  } else if(rr<pGoal+0.36){
+    if(big){addLine("",pick(["Valeu o guarda-redes! "+(gk?gk.p.n:"")+" nega o golo com uma defesa enorme!","QUE DEFESA de "+(gk?gk.p.n:"o guarda-redes")+"! Valeu o guarda-redes!"]),M.min);M.lastMiss={side:home,min:M.min};}
+    else addLine("",line(COMM.defesa,{g:gk?gk.p.n:"o guarda-redes"}),M.min);
+  } else if(rr<pGoal+0.42){
+    addLine("perigo",pick(["A bola beijou o poste! Que arrepio nas bancadas!","AO FERRO!!! A bola beijou o poste... e não quis entrar!"]),M.min);
+    M.lastMiss={side:home,min:M.min};
+  } else {
+    if(big){addLine("",pick(["A bola não quis entrar! Oportunidade flagrante desperdiçada por "+shooter.n+"!","Incrível, "+shooter.n+"! Tinha tudo para marcar e a bola não quis entrar!"]),M.min);M.lastMiss={side:home,min:M.min};}
+    else addLine("",line(COMM.fora,{}),M.min);
+  }
 }
 function weightedPick(arr,f){
   const tot=arr.reduce((s,x)=>s+f(x),0);let r=Math.random()*tot;
