@@ -600,6 +600,7 @@ function loadGame(slot){
   try{G=JSON.parse(localStorage.getItem("fmpt_s"+slot));
     PID=Math.max(0,...G.teams.flatMap(t=>t.players.map(p=>p.id)))+1;
     G.teams.forEach(t=>{if(!t.academy)t.academy={level:t.b?2:1,players:[]};if(!t.stadium)t.stadium={cap:t.base*500,level:1};});
+    G.freeAgents=G.freeAgents||[];
     if(!G.revenue)G.revenue={season:{tickets:0,ads:0,total:0},lastAdMonth:-1};
     openMain();}catch(e){toast("Save corrompido")}
 }
@@ -700,9 +701,10 @@ function renderSquad(c){
    </div>`).join("")}</div>`;
 }
 function playerSheet(id){
-  const p=G.teams.flatMap(t=>[...t.players,...(t.academy&&t.academy.players||[])]).find(x=>x.id===id);
+  const p=[...G.teams.flatMap(t=>[...t.players,...(t.academy&&t.academy.players||[])]),...(G.freeAgents||[])].find(x=>x.id===id);
   if(!p)return;
-  const inAcad=G.teams[p.t].academy&&G.teams[p.t].academy.players.some(x=>x.id===id);
+  const isFA=p.t<0;
+  const inAcad=!isFA&&G.teams[p.t].academy&&G.teams[p.t].academy.players.some(x=>x.id===id);
   const mine=p.t===G.my,gk=p.nr==="GR";
   const names=gk?ATTR_NAMES_GK:ATTR_NAMES_F;
   const bars=p.a.map((v,i)=>`<div class="attr-row"><div class="al">${names[i]}</div>
@@ -712,7 +714,7 @@ function playerSheet(id){
     .map(r=>({r,o:Math.round(effOvr(p,r))})).sort((a,b)=>b.o-a.o).slice(0,3)
     .map(x=>`<span class="pill" style="background:var(--card2);color:var(--muted)">${ROLES[x.r].n} ${x.o}</span>`).join(" ");
   sheet(`<div class="row"><div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-    <div class="grow"><b style="font-size:17px">${p.n}</b><div class="sub">${G.teams[p.t].n} · ${p.age} anos${p.gen?" · formado no clube":""}</div></div>
+    <div class="grow"><b style="font-size:17px">${p.n}</b><div class="sub">${p.t>=0?G.teams[p.t].n:"🆓 Sem clube — Livre"} · ${p.age} anos${p.gen?" · formado no clube":""}</div></div>
     <div class="ovr ${ovrClass(p.ovr)}" style="font-size:24px;width:auto">${p.ovr}</div></div>
    <div style="margin:12px 0 4px">${bars}</div>
    <div class="kv"><span>Role natural</span><b>${ROLES[p.nr].n}</b></div>
@@ -720,7 +722,8 @@ function playerSheet(id){
    <div class="kv"><span>Potencial</span><b>${potStars(p)}</b></div>
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
-   ${inAcad?(mine?`<button class="btn" onclick="promotePlayer(${p.id})">↑ Promover ao plantel</button>`:""):
+   ${isFA?`<button class="btn" onclick="signFree(${p.id})">Contratar a custo zero</button>`:
+     inAcad?(mine?`<button class="btn" onclick="promotePlayer(${p.id})">↑ Promover ao plantel</button>`:""):
      mine?`<button class="btn ghost" onclick="toggleList(${p.id})">${p.listed?"Retirar da lista de transferências":"Colocar na lista de transferências"}</button>`:
      `<button class="btn" onclick="bidFlow(${p.id})">Fazer proposta</button>`}`);
 }
@@ -1293,6 +1296,7 @@ function newSeason(){
   // prémios por classificação
   G.teams.forEach(t=>{if(t.b)return;const pos=(t.div===1?o1:o2).indexOf(t.i);t.budget+=Math.max(0,( t.div===1?(18-pos)*4e5+8e5:(18-pos)*1e5+2e5));});
   // envelhecimento, reforma e regens (25%)
+  const newFA=[];
   G.teams.forEach(t=>{
     t.players.forEach(p=>{p.age++;delete p.cap;p.hist10=[];p.apps10=0;
       if(p.age>=31){p.a=p.a.map(v=>v*0.975);p.ovr=Math.round(roleOvr(p,p.nr));}});
@@ -1302,19 +1306,40 @@ function newSeason(){
     const extra=n-leave.length;
     if(extra>0)leave.push(...[...t.players].filter(p=>!leave.includes(p)).sort((a,b)=>b.age-a.age).slice(0,extra));
     t.players=t.players.filter(p=>!leave.includes(p));
+    leave.forEach(p=>{if(p.age<34){p.t=-1;p.listed=0;p.susp=0;newFA.push(p);}});
     if(!t.academy)t.academy={level:1,players:[]};
-    (t.academy.players||[]).forEach(p=>{p.age++;p.a=p.a.map(v=>clamp(v*1.03,15,99));p.ovr=Math.round(roleOvr(p,p.nr));});
-    t.academy.players=(t.academy.players||[]).filter(p=>p.age<18);
+    (t.academy.players||[]).forEach(p=>{p.age++;const g=1.015+0.01*t.academy.level;p.a=p.a.map(v=>clamp(v*g,15,99));p.ovr=Math.round(roleOvr(p,p.nr));});
+    const exit21=(t.academy.players||[]).filter(p=>p.age>=21);
+    exit21.forEach(p=>{p.t=-1;newFA.push(p);});
+    t.academy.players=t.academy.players.filter(p=>p.age<21);
     genAcademyPlayers(t,n);
+    if(t.academy.players.length>12){ // capacidade máxima: 12 vagas
+      const sorted=[...t.academy.players].sort((a,b)=>(b.pot-a.pot)||(b.ovr-a.ovr));
+      sorted.slice(12).forEach(p=>{p.t=-1;newFA.push(p);});
+      t.academy.players=sorted.slice(0,12);
+    }
     if(t.i!==G.my){aiAcademyPromote(t);aiStadiumInvest(t);}
     else{
-      const r17=t.academy.players.filter(p=>p.age===17).length;
-      pushNews("🎓 Academia: "+n+" novos talentos","Chegaram "+n+" jovens (16 anos) à academia."+(r17?" Tens "+r17+" jogador"+(r17>1?"es":"")+" com 17 anos — promove"+(r17>1?"-os":"-o")+" no separador Clube ou sair"+(r17>1?"ão":"á")+" no fim da época.":""));
-      aiStadiumInvest(t);
+      pushNews("🎓 Academia: "+n+" novos talentos","Chegaram "+n+" jovens de 16 anos. Desenvolvem-se até aos 21 — quem não for promovido sai para a bolsa de Jogadores Livres."+(exit21.length?" Saíram agora: "+exit21.map(p=>p.n).join(", ")+".":""));
     }
   });
   G.season++;buildSeason(G.season);G.matchesPlayed=0;G.windowOpen=true;
   if(!G.revenue||G.revenue.season)G.revenue={season:{tickets:0,ads:0,total:0},lastAdMonth:-1};
+  // obras concluídas
+  G.teams.forEach(t=>{
+    if(t.stadium&&t.stadium.building&&t.stadium.building.done<=G.season){
+      t.stadium.cap=t.stadium.building.cap;t.stadium.level++;delete t.stadium.building;
+      if(t.i===G.my)pushNews("🏟 Obra concluída!",t.st+" tem agora "+t.stadium.cap.toLocaleString("pt-PT")+" lugares. A bilheteira agradece.");
+    }
+    if(t.academy&&t.academy.building&&t.academy.building.done<=G.season){
+      t.academy.level++;delete t.academy.building;
+      if(t.i===G.my)pushNews("🎓 Academia melhorada!","A academia atingiu o nível "+t.academy.level+". A próxima geração de talentos será melhor.");
+    }
+  });
+  // bolsa de livres: a anterior expira (apagados), entra a nova (só os melhores 80, OVR≥48)
+  G.freeAgents=newFA.filter(p=>p.ovr>=48).sort((a,b)=>(b.ovr+b.pot*40)-(a.ovr+a.pot*40)).slice(0,80);
+  if(G.freeAgents.length){const best=G.freeAgents[0];
+    pushNews("🆓 Bolsa de Jogadores Livres","Há "+G.freeAgents.length+" jogadores livres (custo zero) no Mercado durante esta época. Destaque: "+best.n+" ("+best.ovr+", "+best.age+" anos). Quem não for contratado desaparece no fim da época.");}
   saveGame();refreshHeader();setTab("play");
 }
 </script>
@@ -1378,6 +1403,13 @@ function renderMarket(c){
       <p>Overall ${p.ovr} · valor de mercado ${fmtM(value(p))}</p>
       <div class="offer-actions"><button class="btn sm" onclick="acceptOffer(${i})">Aceitar</button>
       <button class="btn sm ghost" onclick="rejectOffer(${i})">Recusar</button></div></div>`}).join("")}</div>`:""}
+   ${(G.freeAgents&&G.freeAgents.length)?`<div class="card"><h3>🆓 Jogadores Livres · custo zero</h3>
+    <p class="sub" style="margin-bottom:6px">Disponíveis apenas esta época, a qualquer momento — depois desaparecem. A IA também contrata!</p>
+    ${[...G.freeAgents].sort((a,b)=>b.ovr-a.ovr).slice(0,25).map(p=>`<div class="list-item">
+      <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
+      <div class="grow" onclick="playerSheet(${p.id})"><b style="font-size:13px">${p.n}</b>
+        <div class="row" style="gap:6px"><span class="sub">${p.age} anos · OVR ${p.ovr}</span><span>${potStars(p)}</span></div></div>
+      <button class="btn sm" onclick="signFree(${p.id})">Contratar</button></div>`).join("")}</div>`:""}
    <div class="card"><h3>Procurar jogadores</h3>
     <div class="row" style="margin-bottom:8px"><input placeholder="Nome..." value="${mktQ}" oninput="mktQ=this.value.toLowerCase()" onchange="setTab('market')" style="flex:1">
     <select style="width:96px" onchange="mktPos=this.value;setTab('market')">
@@ -1424,6 +1456,17 @@ function sendBid(pid){
   }
   saveGame();refreshHeader();setTab("market");
 }
+function signFree(pid){
+  const t=G.teams[G.my];
+  const p=(G.freeAgents||[]).find(x=>x.id===pid);
+  if(!p){toast("Já não está disponível");return;}
+  G.freeAgents=G.freeAgents.filter(x=>x.id!==pid);
+  p.t=G.my;p.hist10=[];p.apps10=0;p.sta=100;p.listed=0;
+  t.players.push(p);
+  closeSheet();toast("Contratado a custo zero: "+p.n.split(" ").slice(-1)[0]+" ✍");
+  pushNews("✍ Contratação livre",p.n+" ("+p.ovr+", "+p.age+" anos) assina pelo "+t.n+" a custo zero.");
+  saveGame();refreshHeader();setTab("market");
+}
 function acceptOffer(i){
   const o=G.offersIn[i],t=G.teams[G.my],buyer=G.teams[o.from];
   const p=t.players.find(x=>x.id===o.pid);
@@ -1438,6 +1481,17 @@ function acceptOffer(i){
 }
 function rejectOffer(i){G.offersIn[i].dead=1;setTab("market")}
 function marketAI(){ // a IA faz propostas e negoceia entre si nas janelas
+  // contratação de livres (acontece a qualquer altura — os bons voam!)
+  if(G.freeAgents&&G.freeAgents.length&&Math.random()<0.45){
+    const fa=[...G.freeAgents].sort((a,b)=>(b.ovr+b.pot*40)-(a.ovr+a.pot*40))[0];
+    const buyers=G.teams.filter(x=>x.i!==G.my&&!x.b&&x.players.length<21&&fa.ovr>=x.base-10);
+    if(buyers.length&&Math.random()<0.7){
+      const b=pick(buyers);
+      G.freeAgents=G.freeAgents.filter(x=>x.id!==fa.id);
+      fa.t=b.i;fa.hist10=[];fa.apps10=0;fa.sta=100;b.players.push(fa);
+      pushNews("🆓 Livre contratado",fa.n+" ("+fa.ovr+", "+fa.age+" anos) assinou a custo zero pelo "+b.n+".");
+    }
+  }
   if(!isWindowOpen())return;
   const t=G.teams[G.my];
   // proposta por um jogador meu (mais provável se listado ou em destaque)
@@ -1523,14 +1577,14 @@ function aiAcademyPromote(team){
 
 /* ── IA: investir no estádio quando tem orçamento folgado ── */
 function stadUpgradeCost(team){return Math.round(team.stadium.cap*30);}
+function stadDur(team){return team.stadium.cap>=25000?2:1;}   // estádios grandes: 2 épocas
+function acadDur(team){return team.academy.level>=3?2:1;}      // níveis altos: 2 épocas
 function aiStadiumInvest(team){
-  if(!team.stadium||team.b||team.stadium.level>=4)return;
+  if(!team.stadium||team.b||team.stadium.level>=4||team.stadium.building)return;
   const cost=stadUpgradeCost(team);
   if(team.budget>=cost*2.5){
     team.budget-=cost;
-    const mult=STAD_MULTS[team.stadium.level-1];
-    team.stadium.cap=Math.round(team.stadium.cap*mult);
-    team.stadium.level++;
+    team.stadium.building={done:G.season+1+stadDur(team),cap:Math.round(team.stadium.cap*STAD_MULTS[team.stadium.level-1])};
   }
 }
 
@@ -1551,48 +1605,58 @@ function promotePlayer(id){
 /* ── Upgrade da academia ── */
 function upgradeAcademy(){
   const t=G.teams[G.my],acad=t.academy;
+  if(acad.building){toast("Já há obras em curso 🚧");return;}
   if(acad.level>=5){toast("Academia no nível máximo");return;}
   const cost=ACAD_COSTS[acad.level-1];
   if(t.budget<cost){toast("Orçamento insuficiente ("+fmtM(cost)+")");return;}
+  const dur=acadDur(t),doneS=G.season+dur;
   sheet(`<div class="grab" onclick="closeSheet()"></div>
    <b style="font-size:16px">Melhorar Academia → Nível ${acad.level+1}/5</b>
    <div class="kv" style="margin-top:12px"><span>Custo</span><b style="color:var(--red)">${fmtM(cost)}</b></div>
    <div class="kv"><span>Jogadores por época</span><b>${1+acad.level+1} (eram ${1+acad.level})</b></div>
    <div class="kv"><span>Potencial base</span><b>+${(acad.level)*2}% por jogador gerado</b></div>
+   <div class="kv"><span>Duração da obra</span><b>${dur} época${dur>1?"s":""} 🚧 conclui em ${doneS}/${String((doneS+1)%100).padStart(2,"0")}</b></div>
    <p class="sub" style="margin:10px 0 4px">Academias de nível superior geram talentos com melhor potencial base. Uma pérola rara pode sempre surgir em qualquer clube!</p>
    <button class="btn" onclick="confirmAcadUpgrade()">Confirmar investimento</button>
    <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
 }
 function confirmAcadUpgrade(){
   const t=G.teams[G.my],acad=t.academy,cost=ACAD_COSTS[acad.level-1];
-  t.budget-=cost;acad.level++;
-  closeSheet();toast("Academia → Nível "+acad.level+" 🎓");
-  pushNews("Academia Nível "+acad.level,"O investimento na formação vai gerar talentos com maior potencial a partir da próxima época.");
+  const dur=acadDur(t),doneS=G.season+dur;
+  t.budget-=cost;
+  acad.building={done:doneS};
+  closeSheet();toast("Obras na academia iniciadas 🚧");
+  pushNews("🚧 Academia em obras","Melhoria para o nível "+(acad.level+1)+" em curso — conclui em "+doneS+"/"+String((doneS+1)%100).padStart(2,"0")+". Investimento: "+fmtM(cost)+".");
   saveGame();refreshHeader();setTab("clube");
 }
 
 /* ── Upgrade do estádio ── */
 function upgradeStadium(){
   const t=G.teams[G.my],stad=t.stadium;
+  if(stad&&stad.building){toast("Já há obras em curso 🚧");return;}
   if(!stad||stad.level>=4){toast("Estádio no nível máximo");return;}
   const cost=stadUpgradeCost(t);
   if(t.budget<cost){toast("Orçamento insuficiente ("+fmtM(cost)+")");return;}
   const newCap=Math.round(stad.cap*STAD_MULTS[stad.level-1]);
+  const dur=stadDur(t),doneS=G.season+dur;
   sheet(`<div class="grab" onclick="closeSheet()"></div>
    <b style="font-size:16px">Expandir ${t.st}</b>
    <div class="kv" style="margin-top:12px"><span>Capacidade atual</span><b>${stad.cap.toLocaleString("pt-PT")} lugares</b></div>
    <div class="kv"><span>Nova capacidade</span><b style="color:var(--ok)">${newCap.toLocaleString("pt-PT")} lugares</b></div>
    <div class="kv"><span>Custo</span><b style="color:var(--red)">${fmtM(cost)}</b></div>
-   <p class="sub" style="margin:10px 0 4px">Mais capacidade = maior bilheteira por jogo e melhor receita de publicidade.</p>
+   <div class="kv"><span>Duração da obra</span><b>${dur} época${dur>1?"s":""} 🚧 conclui em ${doneS}/${String((doneS+1)%100).padStart(2,"0")}</b></div>
+   <p class="sub" style="margin:10px 0 4px">Pagas já; a nova capacidade só conta quando a obra terminar. Mais capacidade = maior bilheteira e publicidade.</p>
    <button class="btn" onclick="confirmStadUpgrade()">Confirmar expansão</button>
    <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
 }
 function confirmStadUpgrade(){
   const t=G.teams[G.my],stad=t.stadium,cost=stadUpgradeCost(t);
   const newCap=Math.round(stad.cap*STAD_MULTS[stad.level-1]);
-  t.budget-=cost;stad.level++;stad.cap=newCap;
-  closeSheet();toast("Estádio expandido! 🏟 "+newCap.toLocaleString("pt-PT")+" lugares");
-  pushNews("🏟 Expansão concluída",t.st+" tem agora "+newCap.toLocaleString("pt-PT")+" lugares. A receita de bilheteira vai aumentar a partir do próximo jogo em casa.");
+  const dur=stadDur(t),doneS=G.season+dur;
+  t.budget-=cost;
+  stad.building={done:doneS,cap:newCap};
+  closeSheet();toast("Obras iniciadas 🚧");
+  pushNews("🚧 Expansão do estádio em curso",t.st+" passará a "+newCap.toLocaleString("pt-PT")+" lugares quando a obra terminar ("+doneS+"/"+String((doneS+1)%100).padStart(2,"0")+"). Investimento: "+fmtM(cost)+".");
   saveGame();refreshHeader();setTab("clube");
 }
 
@@ -1602,20 +1666,17 @@ function renderClube(c){
   const acad=t.academy||(t.academy={level:1,players:[]});
   const stad=t.stadium||(t.stadium={cap:t.base*500,level:1});
   const rev=G.revenue||(G.revenue={season:{tickets:0,ads:0,total:0},lastAdMonth:-1});
-  const ps17=acad.players.filter(p=>p.age===17);
-  const ps16=acad.players.filter(p=>p.age===16);
-  const allAcad=[...ps17,...ps16];
-  const upgCostAcad=acad.level<5?fmtM(ACAD_COSTS[acad.level-1]):null;
-  const stadLvl=stad.level;const stadMax=stadLvl>=4;
+  const allAcad=[...acad.players].sort((a,b)=>b.age-a.age||b.pot-a.pot);
+  const fmtSeason=s=>s+"/"+String((s+1)%100).padStart(2,"0");
   c.innerHTML=`
    <div class="card">
-    <h3>🎓 Academia · Nível ${acad.level}/5</h3>
-    ${ps17.length?`<div style="background:rgba(255,184,28,.1);border:1px solid rgba(255,184,28,.3);border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px">⚠ ${ps17.length} jogador${ps17.length>1?"es":""} com 17 anos ${ps17.length>1?"precisam":"precisa"} de ser promovido${ps17.length>1?"s":""} — no fim da época sair${ps17.length>1?"ão":"á"}!</div>`:""}
+    <h3>🎓 Academia · Nível ${acad.level}/5${acad.building?" · 🚧 obras até "+fmtSeason(acad.building.done):""}</h3>
+    <p class="sub" style="margin-bottom:8px">Vagas: ${acad.players.length}/12 · os jovens desenvolvem-se até aos 21 anos — depois saem para a bolsa de Jogadores Livres.</p>
     ${!allAcad.length?'<div class="empty">Sem jogadores na academia. Chegam novos no final da época.</div>':
      allAcad.map(p=>`<div class="list-item">
       <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
       <div class="grow" onclick="playerSheet(${p.id})" style="cursor:pointer">
-        <b style="font-size:13px">${p.n}</b>
+        <b style="font-size:13px">${p.n}${p.age>=20?' <span style="color:var(--amber);font-size:10px">⏳ último ano</span>':""}</b>
         <div class="row" style="gap:6px;margin-top:2px">
           <span class="sub">${p.age} anos · OVR ${p.ovr}</span>
           <span>${potStars(p)}</span>
@@ -1623,18 +1684,21 @@ function renderClube(c){
       </div>
       <button class="btn sm" onclick="promotePlayer(${p.id})">↑ Promover</button>
      </div>`).join("")}
-    ${upgCostAcad?`<button class="btn ghost" style="margin-top:6px" onclick="upgradeAcademy()">Melhorar academia → Nível ${acad.level+1} · ${upgCostAcad}</button>`:'<p class="sub" style="text-align:center;margin-top:8px">Academia no nível máximo 🎓</p>'}
+    ${acad.building?'<p class="sub" style="text-align:center;margin-top:8px">🚧 Obras em curso — conclusão em '+fmtSeason(acad.building.done)+'</p>':
+     acad.level<5?`<button class="btn ghost" style="margin-top:6px" onclick="upgradeAcademy()">Melhorar academia → Nível ${acad.level+1} · ${fmtM(ACAD_COSTS[acad.level-1])}</button>`:
+     '<p class="sub" style="text-align:center;margin-top:8px">Academia no nível máximo 🎓</p>'}
    </div>
    <div class="card">
-    <h3>🏟 ${t.st} · Nível ${stadLvl}/4</h3>
-    <div class="kv"><span>Capacidade</span><b>${stad.cap.toLocaleString("pt-PT")} adeptos</b></div>
+    <h3>🏟 ${t.st} · Nível ${stad.level}/4${stad.building?" · 🚧 obras até "+fmtSeason(stad.building.done):""}</h3>
+    <div class="kv"><span>Capacidade</span><b>${stad.cap.toLocaleString("pt-PT")} adeptos${stad.building?' <span class="sub">→ '+stad.building.cap.toLocaleString("pt-PT")+'</span>':""}</b></div>
     <div style="background:var(--card2);border-radius:10px;padding:10px;margin:10px 0">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px">Receitas esta época</div>
       <div class="kv" style="padding:4px 0"><span style="font-size:13px">🎟 Bilheteira</span><b style="color:var(--ok)">${fmtM(rev.season.tickets)}</b></div>
       <div class="kv" style="padding:4px 0"><span style="font-size:13px">📡 Publicidade</span><b style="color:var(--ok)">${fmtM(rev.season.ads)}</b></div>
       <div class="kv" style="padding:4px 0;border-top:1px solid var(--line);margin-top:4px"><span style="font-size:13px;font-weight:800">Total</span><b style="color:var(--amber);font-size:16px">${fmtM(rev.season.total)}</b></div>
     </div>
-    ${!stadMax?`<button class="btn ghost" onclick="upgradeStadium()">Expandir → ${Math.round(stad.cap*STAD_MULTS[stadLvl-1]).toLocaleString("pt-PT")} lugares · ${fmtM(stadUpgradeCost(t))}</button>`:
+    ${stad.building?'<p class="sub" style="text-align:center">🚧 Expansão em curso — conclusão em '+fmtSeason(stad.building.done)+'</p>':
+     stad.level<4?`<button class="btn ghost" onclick="upgradeStadium()">Expandir → ${Math.round(stad.cap*STAD_MULTS[stad.level-1]).toLocaleString("pt-PT")} lugares · ${fmtM(stadUpgradeCost(t))}</button>`:
     '<p class="sub" style="text-align:center">Estádio ao máximo 🏟</p>'}
    </div>`;
 }
