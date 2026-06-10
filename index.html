@@ -728,7 +728,7 @@ function autoTactic(){ // 4-3-3 inicial com os melhores
 let dragSel=null; // jogador selecionado (tap) ou em drag
 function renderTactics(c){
   const t=G.teams[G.my],T=G.tactic,inGrid=new Set(Object.values(T.grid).map(g=>g.pid));
-  const benchPs=[...t.players].filter(p=>!inGrid.has(p.id)).sort((a,b)=>b.ovr-a.ovr);
+  const benchPs=[...t.players].filter(p=>!inGrid.has(p.id)).sort((a,b)=>POSORD[a.pos]-POSORD[b.pos]||b.ovr-a.ovr);
   c.innerHTML=`
    <div class="pitch-wrap"><div class="pitch" id="pitch">
      <svg class="markings" viewBox="0 0 100 132" preserveAspectRatio="none" width="100%" height="100%">
@@ -772,8 +772,9 @@ function chipHTML(p,role,key){
 }
 function benchHTML(p){
   return `<div class="bchip" data-pid="${p.id}">
+   <div class="posb pos-${posGroup(p.pos)}" style="width:32px;height:17px;font-size:9px;margin:0 auto 4px">${p.pos}</div>
    <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b>${p.n.split(" ").slice(-1)[0]}</b>
-   <div class="sub">${p.pos} · ${Math.round(p.sta)}%${p.susp?" 🟥":""}</div></div>`;
+   <div class="sub">${Math.round(p.sta)}%${p.susp?" 🟥":""}</div></div>`;
 }
 /* Drag & drop por Pointer Events + fallback tap-tap */
 function bindDnD(){
