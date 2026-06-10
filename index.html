@@ -811,8 +811,10 @@ function bindDnD(){
         delete G.tactic.grid[fromCell];setTab("tactics");toast("Jogador retirado do onze");}
       else setTab("tactics");
     }else{ // tap
-      if(fromCell)chipMenu(pid,fromCell);
-      else{ // selecionar do banco
+      if(fromCell){
+        if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,fromCell);}
+        else chipMenu(pid,fromCell);
+      }else{ // selecionar do banco
         if(dragSel===pid){dragSel=null;}else dragSel=pid;
         document.querySelectorAll(".bchip").forEach(b=>b.classList.toggle("selected",+b.dataset.pid===dragSel));
         if(dragSel)toast("Agora toca numa zona do campo");
@@ -830,7 +832,7 @@ function bindDnD(){
   document.addEventListener("pointerup",end);
   document.addEventListener("pointercancel",cancel);
   document.querySelectorAll(".pcell").forEach(c=>c.addEventListener("click",()=>{
-    if(dragSel!=null&&!c.querySelector(".chip")){const s=dragSel;dragSel=null;dropOnCell(s,null,c.dataset.cell);}
+    if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,c.dataset.cell);}
   }));
 }
 function dropOnCell(pid,from,to){
@@ -841,7 +843,7 @@ function dropOnCell(pid,from,to){
   const occ=T.grid[to];
   if(occ&&occ.pid!==pid){ // troca
     if(from){const tmp=occ;T.grid[to]={pid,role:tmp.role};T.grid[from]={pid:tmp.pid,role:T.grid[from].role};roleSheet(pid,to,from?null:undefined);return;}
-    else{delete T.grid[to];}
+    else{const op=t.players.find(x=>x.id===occ.pid);delete T.grid[to];if(op)toast(op.n.split(" ").slice(-1)[0]+" sai para o banco");}
   }
   if(from)delete T.grid[from];
   if(!from&&Object.keys(T.grid).length>=11){toast("Já tens 11 jogadores. Retira um primeiro.");setTab("tactics");return;}
