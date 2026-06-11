@@ -259,6 +259,7 @@ table.tbl .tn{display:flex;align-items:center;gap:7px;font-weight:600;white-spac
       <button id="m-pause">⏸ Pausa</button>
       <button id="m-speed">1×</button>
       <button id="m-tactics">Tática</button>
+      <button id="m-ht" class="primary" style="display:none">▶ Iniciar 2.ª parte</button>
       <button id="m-done" class="primary" style="display:none">Continuar</button>
     </div>
   </div>
@@ -631,7 +632,18 @@ document.querySelectorAll("#pick-div-seg button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("#pick-div-seg button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on");renderPick(+b.dataset.d);
 });
-function crest(t,sm){return `<div class="crest${sm?" sm":""}" style="background:${t.c[0]};color:${t.c[1]}">${t.s}</div>`}
+function crest(t,sm){
+  const pat=(t.i!=null?t.i:0)%3, c0=t.c[0], c1=t.c[1];
+  const deco=pat===0?`<path d="M50 4 L88 16 V52 C88 76 70 90 50 98 C30 90 12 76 12 52 V16 Z" fill="${c1}" opacity=".25" clip-path="url(#sh${t.i})" transform="translate(24 0) scale(.6)" />`
+    :pat===1?`<rect x="-30" y="38" width="160" height="22" fill="${c1}" opacity=".3" transform="rotate(-24 50 50)" clip-path="url(#sh${t.i})"/>`
+    :`<g clip-path="url(#sh${t.i})" opacity=".3"><rect x="0" y="22" width="100" height="11" fill="${c1}"/><rect x="0" y="44" width="100" height="11" fill="${c1}"/><rect x="0" y="66" width="100" height="11" fill="${c1}"/></g>`;
+  return `<div class="crest${sm?" sm":""}" style="background:transparent;border:none">
+   <svg viewBox="0 0 100 104" width="100%" height="100%">
+    <defs><clipPath id="sh${t.i}"><path d="M50 2 L92 14 V52 C92 79 72 94 50 102 C28 94 8 79 8 52 V14 Z"/></clipPath></defs>
+    <path d="M50 2 L92 14 V52 C92 79 72 94 50 102 C28 94 8 79 8 52 V14 Z" fill="${c0}" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+    ${deco}
+    <text x="50" y="60" text-anchor="middle" font-size="${t.s.length>3?22:26}" font-weight="900" fill="${c1}" font-family="-apple-system,Arial" style="paint-order:stroke" stroke="rgba(0,0,0,.35)" stroke-width="2">${t.s}</text>
+   </svg></div>`}
 function renderPick(d){
   pickDiv=d;
   $("pick-grid").innerHTML=TEAMS_RAW.map((t,i)=>({...t,i})).filter(t=>t.d===d).map(t=>`
@@ -962,8 +974,9 @@ function playMatch(fx,interactive){
     $("m-venue").textContent=th.st;
     $("m-att").textContent="";
     $("m-hname").textContent=th.n;$("m-aname").textContent=ta.n;
-    $("m-relato").innerHTML="";$("m-done").style.display="none";
-    $("m-pause").textContent="⏸ Pausa";$("m-speed").textContent="1×";
+    $("m-relato").innerHTML="";$("m-done").style.display="none";$("m-ht").style.display="none";
+    $("m-pause").style.display="";$("m-speed").style.display="";$("m-tactics").style.display="";
+    $("m-pause").textContent="⏸ Pausa";$("m-speed").textContent="1×";M.ht=0;
     addLine("info","Bem-vindos ao "+th.st+"! "+th.n+" recebe o "+ta.n+". Já rola a bola!");
     updScore();tick();
   } else { while(!M.done)stepMinute(); }
@@ -985,8 +998,13 @@ function tick(){
   if(!M.done)tickT=setTimeout(tick,[420,210,90][M.speed-1]||420);
 }
 function stepMinute(){
+  if(M.interactive&&M.min===45&&M.ht!==1&&M.ht!==2){ // intervalo: paragem manual
+    M.ht=1;M.paused=true;clearTimeout(tickT);
+    addLine("info","INTERVALO! "+M.th.s+" "+M.gh+"–"+M.ga+" "+M.ta.s+". Ajusta a tática ou faz substituições antes de recomeçar.");
+    $("m-ht").style.display="";$("m-pause").style.display="none";
+    updScore();return;
+  }
   M.min++;
-  if(M.min===46)addLine("info","Recomeça a partida para a segunda parte!");
   const sh=sectors(M.xh,M.Th),sa=sectors(M.xa,M.Ta);
   // posse pelo meio-campo + instruções
   let ph=sh.mid*1.06/(sh.mid*1.06+sa.mid); // vantagem caseira
@@ -1130,7 +1148,7 @@ function doSub(team,XI,outX,inP){
 function endMatch(){
   M.done=true;clearTimeout(tickT);
   addLine("info","FINAL DO JOGO! "+M.th.n+" "+M.gh+"–"+M.ga+" "+M.ta.n);
-  if(M.interactive){$("m-done").style.display="block";$("m-pause").style.display="none";$("m-speed").style.display="none";$("m-tactics").style.display="none";updScore();}
+  if(M.interactive){$("m-done").style.display="block";$("m-ht").style.display="none";$("m-pause").style.display="none";$("m-speed").style.display="none";$("m-tactics").style.display="none";updScore();}
   // limpa amarelos de jogo
   [...M.th.players,...M.ta.players].forEach(p=>delete p.yel);
 }
@@ -1138,6 +1156,12 @@ function endMatch(){
 $("m-pause").onclick=()=>{M.paused=!M.paused;$("m-pause").textContent=M.paused?"▶ Seguir":"⏸ Pausa";if(!M.paused)tick()};
 $("m-speed").onclick=()=>{M.speed=M.speed%3+1;$("m-speed").textContent=M.speed+"×"};
 $("m-done").onclick=()=>{afterMyMatch();};
+$("m-ht").onclick=()=>{
+  M.ht=2;M.paused=false;
+  $("m-ht").style.display="none";$("m-pause").style.display="";$("m-pause").textContent="⏸ Pausa";
+  addLine("info","Recomeça a partida para a segunda parte!");
+  tick();
+};
 $("m-tactics").onclick=()=>{
   M.paused=true;$("m-pause").textContent="▶ Seguir";
   const mine=M.fx.h===G.my?{T:M.Th,XI:M.xh,team:M.th}:{T:M.Ta,XI:M.xa,team:M.ta};
