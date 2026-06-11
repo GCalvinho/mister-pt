@@ -208,17 +208,22 @@ table.tbl .tn{display:flex;align-items:center;gap:7px;font-weight:600;white-spac
   </div>
 </div>
 
-<!-- ECRÃ: Escolha de clube -->
+<!-- ECRÃ: Nova carreira (wizard em 2 passos) -->
 <div class="screen" id="scr-pick">
-  <div class="appbar"><button class="icon-btn" onclick="show('scr-home')">‹</button><div class="ttl"><b>Escolhe o teu clube</b><small>Época 2025/26 · qualquer divisão</small></div></div>
+  <div class="appbar"><button class="icon-btn" id="pick-back">‹</button><div class="ttl"><b>Nova carreira</b><small id="pick-sub">Passo 1 de 2 · O teu nome</small></div></div>
   <div class="content nonav">
-    <div class="seg" id="pick-div-seg">
-      <button class="on" data-d="1">Liga Portugal</button>
-      <button data-d="2">Liga Portugal 2</button>
+    <div id="pick-step1">
+      <div class="card" style="margin-top:8px"><h3>Como te chamas, Míster?</h3>
+        <input id="mgr-name" placeholder="O teu nome" maxlength="22" value="" autocomplete="off">
+        <button class="btn" id="btn-step2" style="margin-top:12px">Continuar →</button>
+      </div>
     </div>
-    <div class="club-grid" id="pick-grid"></div>
-    <div class="card" style="margin-top:12px"><h3>Nome do treinador</h3>
-      <input id="mgr-name" placeholder="O teu nome" maxlength="22" value="">
+    <div id="pick-step2" style="display:none">
+      <div class="seg" id="pick-div-seg">
+        <button class="on" data-d="1">Liga Portugal</button>
+        <button data-d="2">Liga Portugal 2</button>
+      </div>
+      <div class="club-grid" id="pick-grid"></div>
     </div>
   </div>
 </div>
@@ -624,7 +629,18 @@ function renderHome(){
       <button class="icon-btn" onclick="if(confirm('Apagar esta carreira?'))deleteSave(${s.slot})">🗑</button>
     </div>`).join(""):`<div class="empty">Ainda não tens carreiras.<br>Começa uma nova!</div>`;
 }
-$("btn-new-career").onclick=()=>{renderPick(1);show("scr-pick")};
+let pickStep=1;
+function pickGo(n){
+  pickStep=n;
+  $("pick-step1").style.display=n===1?"":"none";
+  $("pick-step2").style.display=n===2?"":"none";
+  $("pick-sub").textContent="Passo "+n+" de 2 · "+(n===1?"O teu nome":"Escolhe o teu clube — Época 2025/26");
+  if(n===2)renderPick(pickDiv||1);
+}
+$("btn-new-career").onclick=()=>{pickGo(1);show("scr-pick");setTimeout(()=>$("mgr-name").focus(),150)};
+$("btn-step2").onclick=()=>pickGo(2);
+$("mgr-name").addEventListener("keydown",e=>{if(e.key==="Enter")pickGo(2)});
+$("pick-back").onclick=()=>{if(pickStep===2)pickGo(1);else show("scr-home")};
 
 /* ---- Escolha de clube ---- */
 let pickDiv=1;
