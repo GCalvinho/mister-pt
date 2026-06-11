@@ -259,6 +259,7 @@ table.tbl .tn{max-width:140px}
     </div>
     <div class="mclock" id="m-clock">00'</div>
   </div></div>
+  <div id="m-events" style="display:flex;gap:12px;padding:7px 16px 0;font-size:10.5px;line-height:1.6"></div>
   <div class="relato" id="m-relato"></div>
   <div style="padding:0 14px calc(var(--sab) + 12px)">
     <div class="matchctl">
@@ -448,6 +449,8 @@ function rnd(a,b){return a+Math.random()*(b-a)}
 function ri(a,b){return Math.floor(rnd(a,b+1))}
 function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function genName(){return pick(FN)+" "+pick(LN)}
+const NATM={"Trubin":"🇺🇦","Sudakov":"🇺🇦","Otamendi":"🇦🇷","Prestianni":"🇦🇷","Kökçü":"🇹🇷","Aktürkoğlu":"🇹🇷","Pavlidis":"🇬🇷","Ioannidis":"🇬🇷","Vagiannidis":"🇬🇷","A. Bah":"🇩🇰","Hjulmand":"🇩🇰","Schjelderup":"🇳🇴","Aursnes":"🇳🇴","Dedić":"🇧🇦","S. Dahl":"🇸🇪","Lukébakio":"🇨🇩","Obrador":"🇪🇸","Fresneda":"🇪🇸","Gabri Veiga":"🇪🇸","Borja Sainz":"🇪🇸","Richard Ríos":"🇨🇴","Luis Suárez":"🇨🇴","Ivanović":"🇷🇸","Bednarek":"🇵🇱","Kiwior":"🇵🇱","Nehuén Pérez":"🇦🇷","Froholdt":"🇩🇰","Pablo Rosario":"🇳🇱","St. Juste":"🇳🇱","Luuk de Jong":"🇳🇱","Deniz Gül":"🇸🇪","Samu":"🇪🇸","Eustáquio":"🇨🇦","Varela":"🇦🇷","Pepê":"🇧🇷","Kochorashvili":"🇬🇪","Diomande":"🇨🇮","Debast":"🇧🇪","Morita":"🇯🇵","Maxi Araújo":"🇺🇾","Hornicek":"🇨🇿","Matheus":"🇧🇷","Niakaté":"🇲🇱","Lagerbielke":"🇸🇪","Arrey-Mbi":"🇩🇪","Victor Gómez":"🇪🇸","Zalazar":"🇺🇾","Gorby":"🇫🇷","Pau Víctor":"🇪🇸","Fran Navarro":"🇪🇸","Gabri Martínez":"🇪🇸","Marin":"🇭🇷","Borevković":"🇭🇷","Toni Borevković":"🇭🇷","Mikel Villanueva":"🇻🇪","Charles":"🇧🇷","Zlobin":"🇷🇺","Carević":"🇲🇪","Leo Realpe":"🇪🇨","Van de Looi":"🇳🇱","Marcos Peña":"🇪🇸","Mamageishvili":"🇬🇪","Roméo Beney":"🇨🇭","Óscar Aranda":"🇪🇸","Simon Elisor":"🇫🇷","Umar Abubakar":"🇬🇭","Riccieli":"🇧🇷","Lucão":"🇧🇷","Konan":"🇨🇮","Buatu":"🇦🇴","Hevertton Santos":"🇧🇷","Marvin Gilbert":"🇫🇷","Weverson":"🇧🇷","Cáseres":"🇦🇷","Bamba":"🇨🇮","Zé Carlos II":"🇧🇷","Santi García":"🇪🇸","Fujimoto":"🇯🇵","Martín Fernández":"🇺🇾","Gustavo Varela":"🇺🇾","Murilo":"🇧🇷","Pablo Felipe":"🇧🇷","Patrick Sequeira":"🇨🇷","José Fonte":"🇵🇹","Kaique Rocha":"🇧🇷","David Sousa":"🇧🇷","Kaly":"🇸🇳","Sebastián Pérez":"🇨🇴","Lawrence Ofori":"🇬🇭","Larrazabal":"🇪🇸","Livolant":"🇫🇷","Nsona":"🇫🇷","Livramento":"🇨🇻","Cassiano":"🇧🇷","Joel Robles":"🇪🇸","Martin Turk":"🇸🇮","Ricard Sánchez":"🇪🇸","Bacher":"🇦🇹","Boma":"🇹🇬","Tsoungui":"🇧🇪","Holsgrove":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Jandro Orellana":"🇪🇸","Guitane":"🇫🇷","Khayon Edwards":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Begraoui":"🇫🇷","Alejandro Marqués":"🇻🇪","André Ferreira":"🇵🇹","Caio Secco":"🇧🇷","Marcelo":"🇧🇷","Maracás":"🇧🇷","Michel":"🇧🇷","Stjepanović":"🇷🇸","Alan":"🇧🇷","Landerson":"🇧🇷","Teguia":"🇨🇲","Yan Maranhão":"🇧🇷","Miszta":"🇵🇱","Chamorro":"🇨🇷","Brabec":"🇨🇿","Gustavo Mancha":"🇧🇷","Panzo":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Abbey":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Omar Richards":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Petrasso":"🇨🇦","Nikitscher":"🇭🇺","Bakoulas":"🇬🇷","Aguilera":"🇪🇸","Ndoj":"🇦🇱","Pohlmann":"🇩🇪","Vrousai":"🇦🇱","Špikić":"🇭🇷","Blesa":"🇪🇸","Clayton":"🇧🇷","Marc Gual":"🇪🇸","Tamblé Monteiro":"🇬🇼","Arruabarrena":"🇺🇾","Fontán":"🇪🇸","Popović":"🇷🇸","Javi Sánchez":"🇪🇸","Omar Fayed":"🇪🇬","Danté":"🇲🇱","Kuipers":"🇳🇱","David Simão":"🇵🇹","Fukui":"🇯🇵","Hyun-ju Lee":"🇰🇷","Van Ee":"🇳🇱","Gozálbez":"🇪🇸","Djouahra":"🇩🇿","Trezza":"🇺🇾","Nandín":"🇺🇾","Mayulu":"🇫🇷","Barbero":"🇪🇸","Renan Ribeiro":"🇧🇷","Luan Patrick":"🇧🇷","Bernardo Schappo":"🇧🇷","Otávio":"🇧🇷","Leković":"🇲🇪","Doué":"🇨🇮","Jansson":"🇸🇪","Alex Sola":"🇪🇸","Abraham Marcus":"🇳🇬","Jovane Cabral":"🇨🇻","Van Hooijdonk":"🇳🇱","Stoica":"🇷🇴","Robinho":"🇧🇷","Kaique":"🇧🇷","Zé Vitor":"🇧🇷","Léo Santos":"🇧🇷","Ulisses":"🇧🇷","Alan Núñez":"🇦🇷","Matheus Dias":"🇧🇷","Liziero":"🇧🇷","Baeza":"🇨🇱","Labidi":"🇹🇳","Daniel Júnior":"🇧🇷","Paulinho Bóia":"🇧🇷","Witi":"🇲🇿","Gabriel Veron":"🇧🇷","Lucas João":"🇵🇹","Jesús Ramírez":"🇻🇪","Gabriel Batista":"🇧🇷","Sidney Lima":"🇧🇷","Paulo Victor":"🇧🇷","Venâncio":"🇵🇹","Rocha":"🇧🇷","Calila":"🇵🇹","Marcos Victor":"🇧🇷","Matheus Araújo":"🇧🇷","Serginho":"🇵🇹","Darlan":"🇧🇷","Klismahn":"🇧🇷","Welinton":"🇧🇷","Brenner":"🇧🇷","Gabriel Silva":"🇧🇷","Vinícius Lopes":"🇧🇷","Wendel Silva":"🇧🇷","Paciência":"🇵🇹","Adriel":"🇧🇷","Rivas":"🇻🇪","Rúben Semedo":"🇵🇹","Aderllan Santos":"🇧🇷","Paulo Vitor":"🇧🇷","Ponck":"🇨🇻","Devenish":"🇦🇷","Jaume Grau":"🇪🇸","Galletto":"🇦🇷","Algobia":"🇪🇸","Nenê":"🇧🇷","Óscar Perea":"🇨🇴","Diego Duarte":"🇧🇷","Akinsola":"🇳🇬","Tomané":"🇵🇹","Baroan":"🇨🇮","Cañizares":"🇪🇸","Medina":"🇨🇴","Christian Marques":"🇨🇭","Maviram":"🇮🇱","Bebeto":"🇧🇷","Rémy Vita":"🇨🇲","Joe Hodge":"🇮🇪","Cícero":"🇧🇷","Sithole":"🇿🇦","Juan Rodríguez":"🇪🇸","Hugo Félix":"🇵🇹","Rony Lopes":"🇵🇹","Siebatcheu":"🇺🇸","Van Der Heide":"🇳🇱","Kimpioka":"🇸🇪","Cristian":"🇧🇷","João Victor":"🇧🇷","Sergi Gómez":"🇪🇸","Fernando Varela":"🇨🇻","Alysson":"🇧🇷","Velazquez":"🇵🇾","Iago":"🇧🇷","Thauan Lara":"🇧🇷","Rhaldney":"🇧🇷","Chissumba":"🇦🇴","Lincoln":"🇧🇷","Chiquinho":"🇵🇹","Milovanović":"🇷🇸","Touaizi":"🇲🇦","Diarra":"🇲🇱","Anthony Carter":"🇯🇲","Samuel Silva":"🇵🇹","Alfonso Pastor":"🇪🇸","Igor Julião":"🇧🇷","Júnior Almeida":"🇧🇷","Xavi Grande":"🇪🇸","Romain Correia":"🇫🇷","Noah Madsen":"🇩🇰","Guzzo":"🇮🇹","Danilović":"🇷🇸","Tejón":"🇪🇸","Guirassy":"🇫🇷","Peña Zauner":"🇩🇴","Alberth Elis":"🇭🇳","Butzke":"🇧🇷","Borukov":"🇧🇬","Alexandre Guedes":"🇵🇹","Vozinha":"🇨🇻","André Clóvis":"🇧🇷","Stopira":"🇨🇻","Buntić":"🇩🇪","Diego Torres":"🇦🇷","Vivaldo Semedo":"🇵🇹","Stefanovic":"🇷🇸","Werton":"🇧🇷","Kennedy":"🇧🇷","Marafona":"🇵🇹","Welton":"🇧🇷","Kosuke Nakamura":"🇯🇵","Ricardo Velho":"🇵🇹","Domen Gril":"🇸🇮","Lucas Paes":"🇧🇷","Javi Vázquez":"🇪🇸","Dani Bolt":"🇪🇸","Jair Tavares":"🇵🇹","Oche Ochowechi":"🇳🇬","Diego Callai":"🇧🇷"};
+const flag=p=>NATM[p.n]||"🇵🇹";
 </script>
 <script>
 /* =================== MODELO: ROLES, ATRIBUTOS, OVERALL =================== */
@@ -735,7 +738,7 @@ function renderSquad(c){
   c.innerHTML=`<div class="card"><h3>Plantel · ${ps.length} jogadores</h3>
    ${ps.map(p=>`<div class="list-item" onclick="playerSheet(${p.id})">
      <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-     <div class="grow"><b style="font-size:13.5px">${p.n}${p.susp?" 🟥":""}${p.listed?" 🏷":""}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:10px'>★</span>":""}</b>
+     <div class="grow"><b style="font-size:13.5px">${flag(p)} ${p.n}${p.susp?" 🟥":""}${p.listed?" 🏷":""}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:10px'>★</span>":""}</b>
        <div class="sub">${ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></div>
      <div class="sub mono" style="width:34px;text-align:right">${Math.round(p.sta)}%</div>
      <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div>
@@ -755,7 +758,7 @@ function playerSheet(id){
     .map(r=>({r,o:Math.round(effOvr(p,r))})).sort((a,b)=>b.o-a.o).slice(0,3)
     .map(x=>`<span class="pill" style="background:var(--card2);color:var(--muted)">${ROLES[x.r].n} ${x.o}</span>`).join(" ");
   sheet(`<div class="row"><div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-    <div class="grow"><b style="font-size:17px">${p.n}</b><div class="sub">${p.t>=0?G.teams[p.t].n:"🆓 Sem clube — Livre"} · ${p.age} anos${p.gen?" · formado no clube":""}</div></div>
+    <div class="grow"><b style="font-size:17px">${flag(p)} ${p.n}</b><div class="sub">${p.t>=0?G.teams[p.t].n:"🆓 Sem clube — Livre"} · ${p.age} anos${p.gen?" · formado no clube":""}</div></div>
     <div class="ovr ${ovrClass(p.ovr)}" style="font-size:24px;width:auto">${p.ovr}</div></div>
    <div style="margin:12px 0 4px">${bars}</div>
    <div class="kv"><span>Role natural</span><b>${ROLES[p.nr].n}</b></div>
@@ -1009,14 +1012,14 @@ function playMatch(fx,interactive){
   const Ta=fx.a===G.my?G.tactic:aiTactic(ta);
   th.players.forEach(p=>p.sta=100);ta.players.forEach(p=>p.sta=100);
   M={fx,th,ta,Th,Ta,xh:lineup(th,Th),xa:lineup(ta,Ta),gh:0,ga:0,min:0,events:[],subs:{[fx.h]:5,[fx.a]:5},
-     speed:1,paused:false,done:false,interactive,scorers:[],extra:{[fx.h]:[],[fx.a]:[]}};
+     speed:1,paused:false,done:false,interactive,scorers:[],extra:{[fx.h]:[],[fx.a]:[]},mev:{h:[],a:[]}};
   if(interactive){
     show("scr-match");
     $("m-comp").textContent=compName(fx.c)+(fx.rd?" · Jornada "+fx.rd:"");
     $("m-venue").textContent=th.st;
     $("m-att").textContent="";
     $("m-hname").textContent=th.n;$("m-aname").textContent=ta.n;
-    $("m-relato").innerHTML="";$("m-done").style.display="none";$("m-ht").style.display="none";
+    $("m-relato").innerHTML="";$("m-events").innerHTML="";$("m-done").style.display="none";$("m-ht").style.display="none";
     $("m-pause").style.display="";$("m-speed").style.display="";$("m-tactics").style.display="";
     $("m-pause").textContent="⏸ Pausa";$("m-speed").textContent="1×";M.ht=0;
     addLine("info","Bem-vindos ao "+th.st+"! "+th.n+" recebe o "+ta.n+". Já rola a bola!");
@@ -1032,6 +1035,14 @@ function addLine(cls,txt,min){
   $("m-relato").prepend(el);
 }
 function updScore(){if(M.interactive){$("m-score").textContent=M.gh+" — "+M.ga;$("m-clock").textContent=String(M.min).padStart(2,"0")+"'"}}
+function evPush(homeSide,icon,name,min){
+  if(!M.mev)return;
+  M.mev[homeSide?"h":"a"].push({icon,name,min});
+  if(!M.interactive)return;
+  const render=list=>list.map(e=>`<div>${e.icon} ${e.name.split(" ").slice(-1)[0]} ${e.min}'</div>`).join("");
+  $("m-events").innerHTML=`<div style="flex:1;text-align:left;color:var(--muted)">${render(M.mev.h)}</div>
+   <div style="flex:1;text-align:right;color:var(--muted)">${render(M.mev.a)}</div>`;
+}
 let tickT=null;
 function tick(){
   clearTimeout(tickT);
@@ -1057,7 +1068,7 @@ function stepMinute(){
   let chA=base*(0.55+(1-ph))*(sa.atk/(sh.def+sa.atk))*2*(M.Ta.contra&&M.Th.ment===2?1.15:1);
   if(M.mom&&M.mom.kind==="cut"&&M.min-M.mom.min<=2){if(M.mom.side===1)chH*=1.6;else chA*=1.6;}
   const r=Math.random();
-  if(r<chH)attack(1,sh,sa);else if(r<chH+chA)attack(0,sa,sh);
+  if(r<chH)runAttack(1);else if(r<chH+chA)runAttack(0);
   else if(Math.random()<0.10)addLine("",line(COMM.meio,{a:Math.random()<ph?M.th.n:M.ta.n}),M.min);
   // cansaço
   const drain=(T)=>0.45+(T.press===2?0.22:T.press===0?-0.08:0);
@@ -1069,88 +1080,6 @@ function stepMinute(){
   updScore();
   if(M.min>=90+ri(1,4))endMatch();
 }
-function attack(home,SA,SD,counter){
-  const XA=home?M.xh:M.xa, XD=home?M.xa:M.xh, TT=home?M.th:M.ta, TD=home?M.ta:M.th;
-  const atts=XA.filter(x=>x.band==="atk"||x.band==="am");
-  const shooter=(atts.length?weightedPick(atts,x=>x.p.a[1]+x.p.a[4]):pick(XA.filter(x=>x.band!=="gk"))).p;
-  const mids=XA.filter(x=>x.band==="mid"||x.band==="am"||x.band==="dm");
-  const creator=mids.length?weightedPick(mids,x=>x.p.a[0]).p:null;
-  const fromCut=!counter&&M.mom&&M.mom.kind==="cut"&&M.mom.side===home&&M.min-M.mom.min<=2;
-  if(fromCut)M.mom=null;
-  const longShot=!counter&&!fromCut&&Math.random()<0.18;
-  /* construção narrada */
-  if(counter){
-    addLine("perigo",pick([
-      "Transição rapidíssima! "+(creator?creator.n+" lança":"Lança-se")+" o contra-ataque e a bola chega a "+shooter.n+"...",
-      "Roubada a bola, o "+TT.s+" sai como um raio! "+shooter.n+" recebe em velocidade...",
-      "Contra-ataque mortífero do "+TT.s+"! "+shooter.n+" aparece isolado..."]),M.min);
-  } else if(fromCut){
-    addLine("perigo",pick([
-      "Na sequência da recuperação, o "+TT.s+" sai a jogar"+(creator?": "+creator.n+" encontra "+shooter.n+" em zona perigosa...":" e a bola chega a "+shooter.n+"..."),
-      "O "+TT.s+" aproveita o embalo! "+(creator?creator.n+" rasga a defesa e isola "+shooter.n+"...":shooter.n+" surge em boa posição...")]),M.min);
-  } else if(longShot){
-    addLine("perigo",pick([
-      shooter.n+" arma o remate de fora da área...",
-      "A defesa do "+TD.s+" atrasa-se e "+shooter.n+" prepara o pé de longe...",
-      (creator?creator.n+" toca atrasado para "+shooter.n+", que vai arriscar de longe...":shooter.n+" ajeita o corpo para o remate de longa distância...")]),M.min);
-  } else {
-    if(creator&&Math.random()<0.55)
-      addLine("perigo",pick([
-        creator.n+" conduz no meio-campo, abre o jogo e a bola chega a "+shooter.n+"...",
-        "Boa construção do "+TT.s+": "+creator.n+" encontra espaço e isola "+shooter.n+"...",
-        creator.n+" tira dois adversários do caminho e serve "+shooter.n+"..."]),M.min);
-    else addLine("perigo",line(COMM.chance,{p:shooter.n}),M.min);
-  }
-  /* corte da defesa (raro em contra-ataques e remates de longe) */
-  const defs=XD.filter(x=>x.band==="def"||x.band==="dm");
-  let cutP=clamp((SD.def-SA.atk)/120+0.34,0.12,0.6);
-  if(counter)cutP*=0.55; if(longShot)cutP*=0.4; if(fromCut)cutP*=0.75;
-  if(Math.random()<cutP){
-    const dx=defs.length?weightedPick(defs,x=>x.p.a[2]):null;
-    addLine("",line(COMM.corte,{d:dx?dx.p.n:"a defesa"}),M.min);
-    foulMaybe(dx,XD,home);
-    M.mom={side:home?0:1,kind:"cut",min:M.min};
-    if(!counter&&Math.random()<0.30&&M.min<89){ // contra-ataque imediato, devidamente narrado
-      const SH=sectors(M.xh,M.Th),SAa=sectors(M.xa,M.Ta);
-      attack(home?0:1,home?SAa:SH,home?SH:SAa,true);
-    }
-    return;
-  }
-  /* remate */
-  const gk=XD.find(x=>x.band==="gk");
-  const gq=gk?(gk.p.a[1]+gk.p.a[2])/2*(0.62+0.38*gk.p.sta/100):40;
-  let pGoal=clamp(0.21+(shooter.a[1]-gq)/120,0.08,0.55);
-  if(longShot)pGoal*=0.55; if(counter)pGoal*=1.25;
-  const big=pGoal>=0.30||counter;
-  const rr=Math.random();
-  if(rr<pGoal){
-    if(home)M.gh++;else M.ga++;
-    shooter.goals++;M.scorers.push({n:shooter.n,t:TT.i,min:M.min});
-    const key=shooter.id;G.scorers[key]=G.scorers[key]||{n:shooter.n,t:TT.i,g:0};
-    if(M.fx.c==="L1"||M.fx.c==="L2")G.scorers[key].g++;
-    if(longShot)addLine("gol",pick(["QUE TIRO DE "+shooter.n.toUpperCase()+"!!! A bola entra que nem um míssil! Golo do "+TT.s+"!","SAI UM MÍSSIL do pé de "+shooter.n+"!!! Direitinho ao fundo das redes! GOLO!"]),M.min);
-    else addLine("gol",line(COMM.golo,{p:shooter.n,T:TT.s}),M.min);
-    /* expressões contextuais */
-    const myG=home?M.gh:M.ga,opG=home?M.ga:M.gh;
-    if(myG-opG>=2&&M.min>=70)addLine("gol",pick(["Está feito! O "+TT.s+" matou o jogo!","Matou o jogo, "+shooter.n+"! Isto está praticamente decidido!"]),M.min);
-    else if(shooter.a[1]-gq>=14)addLine("gol","Sem hipótese para o guarda-redes!",M.min);
-    else if((counter||longShot)&&Math.random()<0.7)addLine("gol","É de levantar qualquer estádio!",M.min);
-    if(M.lastMiss&&M.lastMiss.side!==home&&M.min-M.lastMiss.min<=6)addLine("","Quem não marca sofre! A velha máxima do futebol a cumprir-se.",M.min);
-    else if(TT.base<=TD.base-8&&Math.random()<0.6)addLine("","O futebol tem destas coisas!",M.min);
-    M.lastMiss=null;M.mom=null;
-    if(M.interactive){$("gol-sub").textContent=shooter.n+" · "+M.th.s+" "+M.gh+"–"+M.ga+" "+M.ta.s;
-      $("golflash").classList.add("on");setTimeout(()=>$("golflash").classList.remove("on"),1400);}
-  } else if(rr<pGoal+0.36){
-    if(big){addLine("",pick(["Valeu o guarda-redes! "+(gk?gk.p.n:"")+" nega o golo com uma defesa enorme!","QUE DEFESA de "+(gk?gk.p.n:"o guarda-redes")+"! Valeu o guarda-redes!"]),M.min);M.lastMiss={side:home,min:M.min};}
-    else addLine("",line(COMM.defesa,{g:gk?gk.p.n:"o guarda-redes"}),M.min);
-  } else if(rr<pGoal+0.42){
-    addLine("perigo",pick(["A bola beijou o poste! Que arrepio nas bancadas!","AO FERRO!!! A bola beijou o poste... e não quis entrar!"]),M.min);
-    M.lastMiss={side:home,min:M.min};
-  } else {
-    if(big){addLine("",pick(["A bola não quis entrar! Oportunidade flagrante desperdiçada por "+shooter.n+"!","Incrível, "+shooter.n+"! Tinha tudo para marcar e a bola não quis entrar!"]),M.min);M.lastMiss={side:home,min:M.min};}
-    else addLine("",line(COMM.fora,{}),M.min);
-  }
-}
 function weightedPick(arr,f){
   const tot=arr.reduce((s,x)=>s+f(x),0);let r=Math.random()*tot;
   for(const x of arr){r-=f(x);if(r<=0)return x}return arr[arr.length-1];
@@ -1159,8 +1088,8 @@ function foulMaybe(dx,XD,homeAtt){
   if(!dx||Math.random()>0.16)return;
   const p=dx.p;
   if(Math.random()<0.5){
-    if(p.yel){addLine("cartao",line(COMM.vermelho,{p:p.n}),M.min);sendOff(p,XD);}
-    else{p.yel=1;addLine("cartao",line(COMM.amarelo,{p:p.n}),M.min);}
+    if(p.yel){addLine("cartao",line(COMM.vermelho,{p:p.n}),M.min);evPush(!homeAtt,"🟥",p.n,M.min);sendOff(p,XD);}
+    else{p.yel=1;addLine("cartao",line(COMM.amarelo,{p:p.n}),M.min);evPush(!homeAtt,"🟨",p.n,M.min);}
   }
 }
 function sendOff(p,XD){
@@ -1186,6 +1115,7 @@ function doSub(team,XI,outX,inP){
   const i=XI.findIndex(x=>x.p.id===outX.p.id);
   XI[i]={p:inP,role:outX.role,zone:outX.zone,band:outX.band};
   addLine("info","Substituição no "+team.n+": sai "+outX.p.n+", entra "+inP.n+".",M.min);
+  evPush(team.i===M.fx.h,"🔄",inP.n,M.min);
 }
 function endMatch(){
   M.done=true;clearTimeout(tickT);
@@ -1575,7 +1505,7 @@ function renderMarket(c){
     <p class="sub" style="margin-bottom:6px">Disponíveis apenas esta época, a qualquer momento — depois desaparecem. A IA também contrata!</p>
     ${[...G.freeAgents].sort((a,b)=>b.ovr-a.ovr).slice(0,25).map(p=>`<div class="list-item">
       <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-      <div class="grow" onclick="playerSheet(${p.id})"><b style="font-size:13px">${p.n}</b>
+      <div class="grow" onclick="playerSheet(${p.id})"><b style="font-size:13px">${flag(p)} ${p.n}</b>
         <div class="row" style="gap:6px"><span class="sub">${p.age} anos · OVR ${p.ovr}</span><span>${potStars(p)}</span></div></div>
       <button class="btn sm" onclick="signFree(${p.id})">Contratar</button></div>`).join("")}</div>`:""}
    <div class="card"><h3>Procurar jogadores</h3>
@@ -1584,7 +1514,7 @@ function renderMarket(c){
       <option value="">Todos</option><option value="GR" ${mktPos==="GR"?"selected":""}>GR</option><option value="D" ${mktPos==="D"?"selected":""}>Defesas</option><option value="M" ${mktPos==="M"?"selected":""}>Médios</option><option value="A" ${mktPos==="A"?"selected":""}>Avanç.</option></select></div>
     ${all.map(p=>`<div class="list-item" onclick="playerSheet(${p.id})">
       <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-      <div class="grow"><b style="font-size:13px">${p.n}</b><div class="sub">${G.teams[p.t].s} · ${p.age} anos · ${fmtM(value(p))}</div></div>
+      <div class="grow"><b style="font-size:13px">${flag(p)} ${p.n}</b><div class="sub">${G.teams[p.t].s} · ${p.age} anos · ${fmtM(value(p))}</div></div>
       <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div></div>`).join("")}</div>
    <div class="card"><h3>Os teus jogadores listados</h3>${t.players.filter(p=>p.listed).map(p=>`<div class="list-item" onclick="playerSheet(${p.id})"><div class="grow"><b style="font-size:13px">${p.n}</b></div><div class="sub">${fmtM(value(p))}</div></div>`).join("")||`<div class="empty">Nenhum jogador listado.</div>`}</div>`;
 }
@@ -1689,6 +1619,7 @@ function marketAI(){ // a IA faz propostas e negoceia entre si nas janelas
   }
 }
 /* =================== ARRANQUE =================== */
+if("serviceWorker" in navigator){try{navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}}
 renderHome();
 </script>
 <script>
@@ -1870,5 +1801,151 @@ function renderClube(c){
      stad.level<4?`<button class="btn ghost" onclick="upgradeStadium()">Expandir → ${Math.round(stad.cap*STAD_MULTS[stad.level-1]).toLocaleString("pt-PT")} lugares · ${fmtM(stadUpgradeCost(t))}</button>`:
     '<p class="sub" style="text-align:center">Estádio ao máximo 🏟</p>'}
    </div>`;
+}
+</script>
+<script>
+/* ============ MOTOR HÍBRIDO: AGENTES POSICIONAIS + GRAFO DE PASSES ============
+   As posições reais da grelha tática viram coordenadas 2D. Cada ataque é uma
+   sequência de decisões (passe/condução/remate) pontuadas por utilidade:
+   linhas de passe vs defesas reais, espaço do recetor, progressão, pressão.
+   O relato nomeia a cadeia de jogadores e os corredores explorados.        */
+function zoneXY(z){const a=z.split("-");const r=+a[0],c=+a[1];return{x:0.1+c*0.2,y:[0.93,0.78,0.64,0.50,0.36,0.20][r]}}
+function buildAg(XI,defend){return XI.map(e=>{const q=zoneXY(e.zone);return{p:e.p,role:e.role,band:e.band,x:q.x,y:defend?1-q.y:q.y}})}
+function nearD(D,x,y){let m=9;for(const d of D){const dd=Math.hypot(d.x-x,d.y-y);if(dd<m)m=dd}return m}
+function laneClear(ax,ay,bx,by,D){
+  let m=1;const dx=bx-ax,dy=by-ay,L2=(dx*dx+dy*dy)||0.001;
+  for(const o of D){const t=clamp(((o.x-ax)*dx+(o.y-ay)*dy)/L2,0,1);
+    const d=Math.hypot(o.x-(ax+t*dx),o.y-(ay+t*dy));if(d<m)m=d;}
+  return clamp(m/0.12,0,1);
+}
+const corrOf=x=>x<0.34?0:x>0.66?2:1;
+const corrName=x=>["na esquerda","pelo centro","na direita"][corrOf(x)];
+const zoneName=y=>y<0.22?"na área":y<0.36?"no último terço":y<0.55?"no meio-campo ofensivo":"no meio-campo";
+function chainText(chain,TT,fromCut,counter){
+  const named=[];for(const c of chain){if(!named.length||named[named.length-1].p.id!==c.p.id)named.push(c)}
+  const L=named.slice(-3),nm=a=>a.p.n;
+  const intro=counter?pick(["Transição rapidíssima do "+TT.s+"! ","Roubada a bola, o "+TT.s+" sai como um raio! ","Contra-ataque mortífero! "]):
+    fromCut?pick(["Na sequência da recuperação, ","O "+TT.s+" aproveita o embalo: ","Bola recuperada, e "]):"";
+  if(L.length===1)return intro+nm(L[0])+" conduz "+zoneName(L[0].y)+"...";
+  if(L.length===2)return intro+nm(L[0])+" serve "+nm(L[1])+" "+corrName(L[1].x)+"...";
+  return intro+nm(L[0])+" abre "+corrName(L[1].x)+" para "+nm(L[1])+", que encontra "+nm(L[2])+" "+zoneName(L[2].y)+"...";
+}
+function runAttack(home,counter){
+  const XA=home?M.xh:M.xa,XDr=home?M.xa:M.xh,TT=home?M.th:M.ta,TD=home?M.ta:M.th;
+  const TAC=home?M.Th:M.Ta,TACd=home?M.Ta:M.Th;
+  const A=buildAg(XA,false),D=buildAg(XDr,true);
+  A.forEach(a=>a.hot=0.82+Math.random()*0.36);
+  D.forEach(d=>{d.x=clamp(d.x+rnd(-7,7)/100,0.04,0.96);d.y=clamp(d.y+rnd(-7,7)/100,0.02,0.95)});
+  const Dout=D.filter(d=>d.band!=="gk"),gkA=D.find(d=>d.band==="gk");
+  const gq=gkA?(gkA.p.a[1]+gkA.p.a[2])/2*(0.62+0.38*gkA.p.sta/100):40;
+  const stE=p=>0.62+0.38*p.sta/100;
+  const fromCut=!counter&&M.mom&&M.mom.kind==="cut"&&M.mom.side===home&&M.min-M.mom.min<=2;
+  if(fromCut)M.mom=null;
+  /* superioridades por corredor no meio-campo ofensivo */
+  const supW=[0,1,2].map(ci=>A.filter(a=>corrOf(a.x)===ci&&a.y<0.55).length-D.filter(d=>corrOf(d.x)===ci&&d.y<0.55).length);
+  const supSide=supW.indexOf(Math.max(...supW));
+  if(Math.max(...supW)>=2&&Math.random()<0.15)addLine("info","Superioridade numérica do "+TT.s+" no corredor "+["esquerdo","central","direito"][supSide]+"!",M.min);
+  /* portador inicial */
+  let pool=(counter||fromCut)?A.filter(a=>a.band!=="gk"):A.filter(a=>a.band==="dm"||a.band==="mid"||a.band==="def");
+  if(!pool.length)pool=A.filter(a=>a.band!=="gk");
+  let cur={...weightedPick(pool,a=>a.p.a[0]+10)};
+  if(counter)cur.y=Math.min(cur.y,0.55);
+  const chain=[cur];
+  const steps=counter?4:6;
+  for(let s2=0;s2<steps;s2++){
+    const ndst=nearD(Dout,cur.x,cur.y);
+    const press=clamp(0.16/Math.max(ndst,0.04)-0.35,0,1)*(1+(TACd.press-1)*0.18);
+    const opts=[];
+    for(const t of A){
+      if(t.p.id===cur.p.id||t.band==="gk"||t.y>cur.y+0.10)continue;
+      const lane=laneClear(cur.x,cur.y,t.x,t.y,Dout);
+      const dist=Math.hypot(t.x-cur.x,t.y-cur.y);
+      const space=clamp(nearD(D,t.x,t.y)/0.16,0,1);
+      const prog=cur.y-t.y;
+      const succ=clamp((0.48+0.52*lane)*(0.62+0.38*cur.p.a[0]/100)*stE(cur.p)*(1-dist*0.32)*(1-press*0.18),0.15,0.97);
+      let u=(lane*0.38+Math.max(prog,0)*1.4+space*0.34+(1-t.y)*0.18)*succ*(t.hot||1);
+      if(corrOf(t.x)===supSide&&supW[supSide]>=1)u*=1.18;
+      if(TAC.posse&&dist<0.25)u*=1.12;
+      opts.push({t,succ,u});
+    }
+    opts.sort((a,b)=>b.u-a.u);
+    const canShoot=cur.y<0.40;
+    const shootBase=canShoot?clamp((0.44-cur.y)*2.3,0,0.85)*(0.40+0.60*cur.p.a[1]/100)*(1-Math.abs(cur.x-0.5)*0.55)*(1-press*0.30)*(cur.hot||1):0;
+    const noise=(1-cur.p.a[4]/100)*0.30;
+    const choice=[["shoot",shootBase*1.05*(counter&&TAC.contra?1.1:1)],["pass",opts[0]?opts[0].u:0],
+      ["drib",clamp((0.55-press)*0.45*(0.4+0.6*cur.p.a[3]/100),0,0.5)*(cur.y>0.14?1:0.3)]]
+      .map(([k,u])=>[k,u+rnd(-100,100)/1000*noise]).sort((a,b)=>b[1]-a[1])[0][0];
+    if(choice==="shoot"&&shootBase>0.05)return seqShot(home,cur,chain,counter,fromCut,gq,press,TT,TD);
+    if(choice==="pass"&&opts.length){
+      const P=opts[0];
+      if(Math.random()>P.succ)return seqIntercept(home,cur,P.t,Dout,chain,TT,TD,fromCut,counter);
+      cur={...P.t};chain.push(cur);continue;
+    }
+    const tk=Dout.slice().sort((a,b)=>Math.hypot(a.x-cur.x,a.y-cur.y)-Math.hypot(b.x-cur.x,b.y-cur.y))[0];
+    if(tk&&Math.hypot(tk.x-cur.x,tk.y-cur.y)<0.13){
+      const tp=clamp(tk.p.a[2]/170+press*0.18,0.08,0.55);
+      if(Math.random()<tp)return seqCut(home,tk,chain,XDr,TT,TD,fromCut,counter);
+    }
+    cur={...cur,y:Math.max(0.12,cur.y-0.11),x:clamp(cur.x+rnd(-6,6)/100,0.06,0.94)};
+    chain.push(cur);
+  }
+  addLine("",chainText(chain,TT,fromCut,counter).replace("...","")+" — mas a defesa do "+TD.s+" fecha os caminhos e alivia.",M.min);
+}
+function seqShot(home,cur,chain,counter,fromCut,gq,press,TT,TD){
+  addLine("perigo",chainText(chain,TT,fromCut,counter),M.min);
+  const longShot=cur.y>=0.30;
+  let pGoal=clamp(0.24+(cur.p.a[1]-gq)/160,0.10,0.50)*(1-press*0.15);
+  if(longShot)pGoal*=0.60; if(counter)pGoal*=1.20;
+  const big=pGoal>=0.28||counter;
+  const shooter=cur.p,rr=Math.random();
+  if(rr<pGoal){
+    if(home)M.gh++;else M.ga++;
+    shooter.goals++;M.scorers.push({n:shooter.n,t:TT.i,min:M.min});
+    const key=shooter.id;G.scorers[key]=G.scorers[key]||{n:shooter.n,t:TT.i,g:0};
+    if(M.fx.c==="L1"||M.fx.c==="L2")G.scorers[key].g++;
+    evPush(!!home,"⚽",shooter.n,M.min);
+    if(longShot)addLine("gol",pick(["QUE TIRO DE "+shooter.n.toUpperCase()+"!!! A bola entra que nem um míssil! Golo do "+TT.s+"!","SAI UM MÍSSIL do pé de "+shooter.n+"!!! Direitinho ao fundo das redes! GOLO!"]),M.min);
+    else addLine("gol",line(COMM.golo,{p:shooter.n,T:TT.s}),M.min);
+    const named=[];for(const c of chain){if(!named.length||named[named.length-1].p.id!==c.p.id)named.push(c)}
+    const assist=named.length>=2?named[named.length-2].p:null;
+    if(assist&&Math.random()<0.5)addLine("","Assistência de "+assist.n+".",M.min);
+    const myG=home?M.gh:M.ga,opG=home?M.ga:M.gh;
+    if(myG-opG>=2&&M.min>=70)addLine("gol",pick(["Está feito! O "+TT.s+" matou o jogo!","Matou o jogo, "+shooter.n+"! Isto está praticamente decidido!"]),M.min);
+    else if(shooter.a[1]-gq>=14)addLine("gol","Sem hipótese para o guarda-redes!",M.min);
+    else if((counter||longShot)&&Math.random()<0.7)addLine("gol","É de levantar qualquer estádio!",M.min);
+    if(M.lastMiss&&M.lastMiss.side!==home&&M.min-M.lastMiss.min<=6)addLine("","Quem não marca sofre! A velha máxima do futebol a cumprir-se.",M.min);
+    else if(TT.base<=TD.base-8&&Math.random()<0.6)addLine("","O futebol tem destas coisas!",M.min);
+    M.lastMiss=null;M.mom=null;
+    if(M.interactive){$("gol-sub").textContent=shooter.n+" · "+M.th.s+" "+M.gh+"–"+M.ga+" "+M.ta.s;
+      $("golflash").classList.add("on");setTimeout(()=>$("golflash").classList.remove("on"),1400);}
+  } else if(rr<pGoal+0.36){
+    const gkName=(home?M.xa:M.xh).find(x=>x.band==="gk");
+    if(big){addLine("",pick(["Valeu o guarda-redes! "+(gkName?gkName.p.n:"")+" nega o golo com uma defesa enorme!","QUE DEFESA de "+(gkName?gkName.p.n:"o guarda-redes")+"! Valeu o guarda-redes!"]),M.min);M.lastMiss={side:home,min:M.min};}
+    else addLine("",line(COMM.defesa,{g:gkName?gkName.p.n:"o guarda-redes"}),M.min);
+  } else if(rr<pGoal+0.42){
+    addLine("perigo",pick(["A bola beijou o poste! Que arrepio nas bancadas!","AO FERRO!!! A bola beijou o poste... e não quis entrar!"]),M.min);
+    M.lastMiss={side:home,min:M.min};
+  } else {
+    if(big){addLine("",pick(["A bola não quis entrar! Oportunidade flagrante desperdiçada por "+shooter.n+"!","Incrível, "+shooter.n+"! Tinha tudo para marcar e a bola não quis entrar!"]),M.min);M.lastMiss={side:home,min:M.min};}
+    else addLine("",line(COMM.fora,{}),M.min);
+  }
+}
+function seqCut(home,tk,chain,XDr,TT,TD,fromCut,counter){
+  addLine("perigo",chainText(chain,TT,fromCut,counter),M.min);
+  addLine("",line(COMM.corte,{d:tk.p.n}),M.min);
+  const entry=XDr.find(e=>e.p.id===tk.p.id);
+  if(entry)foulMaybe(entry,XDr,home);
+  M.mom={side:home?0:1,kind:"cut",min:M.min};
+  if(!counter&&Math.random()<0.30&&M.min<89)runAttack(home?0:1,true);
+}
+function seqIntercept(home,cur,target,Dout,chain,TT,TD,fromCut,counter){
+  addLine("perigo",chainText(chain,TT,fromCut,counter),M.min);
+  const ix=Dout.slice().sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
+  addLine("",pick(["Passe intercetado por "+(ix?ix.p.n:"a defesa")+"! O "+TD.s+" recupera a posse.",
+    (ix?ix.p.n:"A defesa")+" lê a jogada e corta a linha de passe!",
+    "Má decisão! "+(ix?ix.p.n+" antecipa-se e fica com a bola.":"A defesa do "+TD.s+" antecipa-se."),
+    "O passe sai telegrafado e "+(ix?ix.p.n:"a defesa do "+TD.s)+" intercepta com facilidade."]),M.min);
+  M.mom={side:home?0:1,kind:"cut",min:M.min};
+  if(!counter&&Math.random()<0.22&&M.min<89)runAttack(home?0:1,true);
 }
 </script>
