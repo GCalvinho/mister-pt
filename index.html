@@ -97,7 +97,8 @@ table.tbl th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-s
 table.tbl th:first-child,table.tbl td:first-child{text-align:left}
 table.tbl td{padding:7px 4px;text-align:right;border-bottom:1px solid rgba(35,80,56,.4)}
 table.tbl tr.me td{background:rgba(255,184,28,.07)}
-table.tbl .tn{display:flex;align-items:center;gap:7px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.tn{display:flex;align-items:center;gap:7px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.tbl .tn{max-width:140px}
 .zone-up{box-shadow:inset 3px 0 0 var(--ok)} .zone-down{box-shadow:inset 3px 0 0 var(--red)}
 
 /* ===== Tática: campo ===== */
@@ -267,6 +268,15 @@ table.tbl .tn{display:flex;align-items:center;gap:7px;font-weight:600;white-spac
       <button id="m-ht" class="primary" style="display:none">▶ Iniciar 2.ª parte</button>
       <button id="m-done" class="primary" style="display:none">Continuar</button>
     </div>
+  </div>
+</div>
+
+<!-- ECRÃ: Posições ao vivo (durante o jogo) -->
+<div class="screen" id="scr-livetact">
+  <div class="appbar"><button class="icon-btn" onclick="cancelLiveTact()">‹</button><div class="ttl"><b>Posições ao vivo</b><small>Arrasta os jogadores · toca num para mudar o role</small></div></div>
+  <div class="content nonav">
+    <div class="pitch-wrap" id="lt-pitch-wrap"></div>
+    <button class="btn" style="margin-top:12px" onclick="applyLiveTact()">✓ Aplicar e voltar ao jogo</button>
   </div>
 </div>
 
@@ -777,6 +787,9 @@ function autoTactic(){ // 4-3-3 inicial com os melhores
   G.tactic={grid,ment:1,press:1,contra:0,posse:0};
 }
 let dragSel=null; // jogador selecionado (tap) ou em drag
+let liveEdit=null;   // grelha temporária durante edição ao vivo
+function curTact(){return liveEdit||G.tactic}
+function retact(){if(liveEdit)renderLivePitch();else setTab("tactics")}
 function renderTactics(c){
   const t=G.teams[G.my],T=G.tactic,inGrid=new Set(Object.values(T.grid).map(g=>g.pid));
   const benchPs=[...t.players].filter(p=>!inGrid.has(p.id)).sort((a,b)=>POSORD[a.pos]-POSORD[b.pos]||b.ovr-a.ovr);
@@ -796,17 +809,29 @@ function renderTactics(c){
    </div></div>
    <div class="sub" style="text-align:center;margin:6px 0 2px">Arrasta (ou toca para selecionar e toca na zona) · ${Object.keys(T.grid).length}/11</div>
    <div class="bench" id="bench">${benchPs.map(p=>benchHTML(p)).join("")}</div>
-   <div class="card"><h3>Instruções de equipa</h3>
-     <div class="sub" style="margin-bottom:2px">Mentalidade</div>
-     <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${T.ment===i?"on":""}" onclick="G.tactic.ment=${i};setTab('tactics')">${m}</button>`).join("")}</div>
-     <div class="sub" style="margin-bottom:2px">Pressão</div>
-     <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${T.press===i?"on":""}" onclick="G.tactic.press=${i};setTab('tactics')">${m}</button>`).join("")}</div>
-     <div class="seg"><button class="${T.contra?"on":""}" onclick="G.tactic.contra^=1;setTab('tactics')">Contra-ataque</button>
-       <button class="${T.posse?"on":""}" onclick="G.tactic.posse^=1;setTab('tactics')">Posse curta</button></div>
+   <div class="card"><h3>Instruções da tática</h3>
+     <div class="kv"><span>Mentalidade</span><b>${["Defensiva","Equilibrada","Ofensiva"][T.ment]}</b></div>
+     <div class="kv"><span>Pressão</span><b>${["Baixa","Média","Alta"][T.press]}</b></div>
+     <div class="kv"><span>Variantes</span><b>${[T.contra?"Contra-ataque":"",T.posse?"Posse curta":""].filter(Boolean).join(" · ")||"—"}</b></div>
+     <button class="btn ghost" onclick="instrSheet()">⚙ Ajustar instruções</button>
      <button class="btn ghost" onclick="autoTactic();setTab('tactics');toast('Onze automático definido')">Onze automático (4-3-3)</button>
    </div>`;
   bindDnD();
 }
+function instrTact(){return (M&&!M.done&&M.interactive)?(M.fx.h===G.my?M.Th:M.Ta):G.tactic}
+function instrSheet(){
+  const T=instrTact();
+  sheet(`<h3 style="margin-bottom:8px">Instruções da tática</h3>
+   <div class="sub" style="margin-bottom:4px">Mentalidade</div>
+   <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${T.ment===i?"on":""}" onclick="instrSet('ment',${i})">${m}</button>`).join("")}</div>
+   <div class="sub" style="margin:6px 0 4px">Pressão</div>
+   <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${T.press===i?"on":""}" onclick="instrSet('press',${i})">${m}</button>`).join("")}</div>
+   <div class="sub" style="margin:6px 0 4px">Variantes</div>
+   <div class="seg"><button class="${T.contra?"on":""}" onclick="instrSet('contra',${T.contra?0:1})">Contra-ataque</button>
+     <button class="${T.posse?"on":""}" onclick="instrSet('posse',${T.posse?0:1})">Posse curta</button></div>
+   <button class="btn" style="margin-top:12px" onclick="closeSheet();if(!liveEdit&&tab==='tactics')setTab('tactics')">✓ Pronto</button>`);
+}
+function instrSet(k,v){instrTact()[k]=v;instrSheet();}
 function cellHTML(r,col,T,t,extra){
   const key=r+"-"+col,g=T.grid[key];
   let inner="";
@@ -835,7 +860,7 @@ function bindDnD(){
   const mkGhost=()=>{
     const p=G.teams[G.my].players.find(x=>x.id===pid);
     ghost=document.createElement("div");ghost.className="drag-ghost";
-    ghost.innerHTML=chipHTML(p,fromCell&&G.tactic.grid[fromCell]?G.tactic.grid[fromCell].role:p.nr,"");
+    ghost.innerHTML=chipHTML(p,fromCell&&curTact().grid[fromCell]?curTact().grid[fromCell].role:p.nr,"");
     document.body.appendChild(ghost);
     document.querySelector(`[data-pid="${pid}"]`)?.classList.add("dragging");
   };
@@ -865,8 +890,9 @@ function bindDnD(){
     if(wasDrag){
       if(cell)dropOnCell(p0,fc,cell.dataset.cell);
       else if(fc&&!pitchEl.contains(document.elementFromPoint(e.clientX,e.clientY))){
-        delete G.tactic.grid[fc];setTab("tactics");toast("Jogador retirado do onze");}
-      else setTab("tactics");
+        if(liveEdit){retact();}
+        else{delete G.tactic.grid[fc];setTab("tactics");toast("Jogador retirado do onze");}}
+      else retact();
     }else{ // toque
       if(fc){
         if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,fc);}
@@ -893,7 +919,7 @@ function bindDnD(){
 }
 function dropOnCell(pid,from,to){
   if(!to)return;
-  const T=G.tactic,t=G.teams[G.my],p=t.players.find(x=>x.id===pid);
+  const T=curTact(),t=G.teams[G.my],p=t.players.find(x=>x.id===pid);
   const [r,c]=to.split("-").map(Number);
   if(r===0&&to!=="0-2")return;
   const occ=T.grid[to];
@@ -902,7 +928,7 @@ function dropOnCell(pid,from,to){
     else{const op=t.players.find(x=>x.id===occ.pid);delete T.grid[to];if(op)toast(op.n.split(" ").slice(-1)[0]+" sai para o banco");}
   }
   if(from)delete T.grid[from];
-  if(!from&&Object.keys(T.grid).length>=11){toast("Já tens 11 jogadores. Retira um primeiro.");setTab("tactics");return;}
+  if(!from&&Object.keys(T.grid).length>=11){toast("Já tens 11 jogadores. Retira um primeiro.");retact();return;}
   T.grid[to]={pid,role:ZONE_ROLES(r,c)[0]};
   roleSheet(pid,to);
 }
@@ -918,9 +944,9 @@ function roleSheet(pid,cellKey){
        <div><b>${ROLES[role].n}</b><div class="sub">${role===p.nr?"Role natural":"Fora de posição"}</div></div>
        <div class="ovr ${ovrClass(eo)}" style="width:auto">${eo} <small style="color:${diff<0?"var(--red)":"var(--muted)"};font-size:10px">${diff<0?diff:""}</small></div></div>`;
    }).join("")+
-   `<button class="btn danger" onclick="delete G.tactic.grid['${cellKey}'];closeSheet();setTab('tactics')">Retirar do onze</button>`);
+   (liveEdit?"":`<button class="btn danger" onclick="delete G.tactic.grid['${cellKey}'];closeSheet();setTab('tactics')">Retirar do onze</button>`));
 }
-function setRole(pid,cell,role){G.tactic.grid[cell]={pid,role};closeSheet();setTab("tactics")}
+function setRole(pid,cell,role){curTact().grid[cell]={pid,role};closeSheet();retact()}
 function chipMenu(pid,cell){roleSheet(pid,cell)}
 function xiValid(){
   const T=G.tactic,keys=Object.keys(T.grid);
@@ -1178,6 +1204,43 @@ $("m-ht").onclick=()=>{
   addLine("info","Recomeça a partida para a segunda parte!");
   tick();
 };
+function openLiveTact(){
+  const mine=M.fx.h===G.my?{XI:M.xh}:{XI:M.xa};
+  const grid={};
+  mine.XI.forEach(x=>grid[x.zone]={pid:x.p.id,role:x.role});
+  liveEdit={grid};
+  closeSheet();show("scr-livetact");renderLivePitch();
+}
+function renderLivePitch(){
+  const t=G.teams[G.my],T=liveEdit;
+  $("lt-pitch-wrap").innerHTML=`<div class="pitch" id="pitch">
+   <svg class="markings" viewBox="0 0 100 132" preserveAspectRatio="none" width="100%" height="100%">
+    <rect x="2" y="2" width="96" height="128" fill="none" stroke="#cfe2d6" stroke-width=".6"/>
+    <line x1="2" y1="66" x2="98" y2="66" stroke="#cfe2d6" stroke-width=".6"/>
+    <circle cx="50" cy="66" r="10" fill="none" stroke="#cfe2d6" stroke-width=".6"/>
+    <rect x="28" y="2" width="44" height="14" fill="none" stroke="#cfe2d6" stroke-width=".6"/>
+    <rect x="28" y="116" width="44" height="14" fill="none" stroke="#cfe2d6" stroke-width=".6"/>
+   </svg>
+   <div class="pgrid">${(()=>{let html="";for(let r=5;r>=1;r--)for(let col=0;col<5;col++)html+=cellHTML(r,col,T,t);html+=cellHTML(0,2,T,t,"gkcell");return html})()}</div>
+  </div>`;
+  bindDnD();
+}
+function applyLiveTact(){
+  if(!liveEdit)return;
+  const mine=M.fx.h===G.my?{XI:M.xh}:{XI:M.xa};
+  const t=G.teams[G.my];
+  const newXI=[];
+  Object.entries(liveEdit.grid).forEach(([k,g])=>{
+    const p=t.players.find(x=>x.id===g.pid);
+    if(p)newXI.push({p,role:g.role,zone:k,band:BAND(+k.split("-")[0])});
+  });
+  if(newXI.length!==mine.XI.length){toast("Mantém os "+mine.XI.length+" jogadores no campo");return;}
+  mine.XI.length=0;newXI.forEach(x=>mine.XI.push(x));
+  liveEdit=null;show("scr-match");
+  if(M.interactive)addLine("info","O treinador "+G.mgr+" reorganiza a equipa em campo.",M.min);
+  toast("Posições aplicadas ✓");
+}
+function cancelLiveTact(){liveEdit=null;show("scr-match")}
 function liveTacticsSheet(){
   M.paused=true;$("m-pause").textContent="▶ Seguir";
   const mine=M.fx.h===G.my?{T:M.Th,XI:M.xh,team:M.th}:{T:M.Ta,XI:M.xa,team:M.ta};
@@ -1187,6 +1250,7 @@ function liveTacticsSheet(){
    <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${mine.T.ment===i?"on":""}" onclick="liveMent(${i})">${m}</button>`).join("")}</div>
    <div class="sub" style="margin:6px 0 4px">Pressão</div>
    <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${mine.T.press===i?"on":""}" onclick="livePress(${i})">${m}</button>`).join("")}</div>
+   <button class="btn ghost" style="margin-top:12px" onclick="openLiveTact()">📋 Mudar posições e roles (arrastar)</button>
    <h3 style="margin:14px 0 6px">Em campo (toca para substituir)</h3>
    ${mine.XI.map(x=>`<div class="list-item" onclick="pickSubFor(${x.p.id})">
      <div class="posb pos-${x.band==="gk"?"GR":posGroup(x.p.pos)}">${x.role}</div>
@@ -1229,6 +1293,8 @@ function myNextFixture(){
   }
   return null;
 }
+let othersOpen=false;
+function toggleOthers(){othersOpen=!othersOpen;setTab('play')}
 function renderPlay(c){
   const md=G.cal[G.calIdx];
   if(!md){c.innerHTML=`<div class="card"><h3>Fim de época</h3><p style="font-size:14px;margin-bottom:6px">A época ${G.season}/${(G.season+1)%100} chegou ao fim!</p><button class="btn" onclick="newSeason()">Começar época ${G.season+1}/${(G.season+2)%100}</button></div>`+historyHTML();return}
@@ -1257,7 +1323,7 @@ function renderPlay(c){
   }
   const others=fxs.filter(f=>f!==mine).map(f=>`<div class="list-item">
     <div class="tn grow">${crest(G.teams[f.h],1)} ${G.teams[f.h].s} <span class="sub">vs</span> ${G.teams[f.a].s} ${crest(G.teams[f.a],1)}</div></div>`).join("");
-  c.innerHTML=mineHTML+(others?`<div class="card"><h3>Outros jogos do dia</h3>${others}</div>`:"")+upcomingHTML();
+  c.innerHTML=mineHTML+(others?`<div class="card"><h3 onclick="toggleOthers()" style="cursor:pointer;margin-bottom:${othersOpen?10:0}px">${othersOpen?"▾":"▸"} Outros jogos do dia</h3><div style="display:${othersOpen?"block":"none"}">${others}</div></div>`:"")+upcomingHTML();
 }
 function upcomingHTML(){
   let h="",n=0;
