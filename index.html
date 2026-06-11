@@ -1178,31 +1178,35 @@ $("m-ht").onclick=()=>{
   addLine("info","Recomeça a partida para a segunda parte!");
   tick();
 };
-$("m-tactics").onclick=()=>{
+function liveTacticsSheet(){
   M.paused=true;$("m-pause").textContent="▶ Seguir";
   const mine=M.fx.h===G.my?{T:M.Th,XI:M.xh,team:M.th}:{T:M.Ta,XI:M.xa,team:M.ta};
   const inGrid=new Set(mine.XI.map(x=>x.p.id));
-  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!p.susp);
-  sheet(`<h3 style="margin-bottom:8px">Banco — substituições (${M.subs[mine.team.i]} restantes)</h3>
-   <div class="sub" style="margin-bottom:8px">Mentalidade</div>
+  sheet(`<h3 style="margin-bottom:8px">Tática ao vivo · ${M.subs[mine.team.i]} substituições restantes</h3>
+   <div class="sub" style="margin-bottom:4px">Mentalidade</div>
    <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${mine.T.ment===i?"on":""}" onclick="liveMent(${i})">${m}</button>`).join("")}</div>
-   <div class="seg">${["P. Baixa","P. Média","P. Alta"].map((m,i)=>`<button class="${mine.T.press===i?"on":""}" onclick="livePress(${i})">${m}</button>`).join("")}</div>
-   <h3 style="margin:12px 0 6px">Em campo (toca para substituir)</h3>
-   ${mine.XI.filter(x=>x.band!=="gk").map(x=>`<div class="list-item" onclick="pickSubFor(${x.p.id})">
-     <div class="posb pos-${posGroup(x.p.pos)}">${x.role}</div>
+   <div class="sub" style="margin:6px 0 4px">Pressão</div>
+   <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${mine.T.press===i?"on":""}" onclick="livePress(${i})">${m}</button>`).join("")}</div>
+   <h3 style="margin:14px 0 6px">Em campo (toca para substituir)</h3>
+   ${mine.XI.map(x=>`<div class="list-item" onclick="pickSubFor(${x.p.id})">
+     <div class="posb pos-${x.band==="gk"?"GR":posGroup(x.p.pos)}">${x.role}</div>
      <div class="grow"><b style="font-size:13px">${x.p.n}</b></div>
      <div class="sub mono">${Math.round(x.p.sta)}%</div>
-     <div class="ovr ${ovrClass(Math.round(effOvr(x.p,x.role)))}">${Math.round(effOvr(x.p,x.role))}</div></div>`).join("")}`);
-};
-function liveMent(i){(M.fx.h===G.my?M.Th:M.Ta).ment=i;toast("Mentalidade alterada");closeSheet()}
-function livePress(i){(M.fx.h===G.my?M.Th:M.Ta).press=i;toast("Pressão alterada");closeSheet()}
+     <div class="ovr ${ovrClass(Math.round(effOvr(x.p,x.role)))}">${Math.round(effOvr(x.p,x.role))}</div></div>`).join("")}
+   <button class="btn" onclick="closeSheet()">✓ Pronto</button>`);
+}
+$("m-tactics").onclick=liveTacticsSheet;
+function liveMent(i){(M.fx.h===G.my?M.Th:M.Ta).ment=i;liveTacticsSheet()}
+function livePress(i){(M.fx.h===G.my?M.Th:M.Ta).press=i;liveTacticsSheet()}
 let subOut=null;
 function pickSubFor(pid){
   const mine=M.fx.h===G.my?{T:M.Th,XI:M.xh,team:M.th}:{T:M.Ta,XI:M.xa,team:M.ta};
   if(M.subs[mine.team.i]<=0){toast("Sem substituições restantes");return}
   subOut=mine.XI.find(x=>x.p.id===pid);
   const inGrid=new Set(mine.XI.map(x=>x.p.id));
-  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&p.nr!=="GR").sort((a,b)=>effOvr(b,subOut.role)-effOvr(a,subOut.role));
+  const isGK=subOut.band==="gk";
+  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&(p.nr==="GR")===isGK).sort((a,b)=>effOvr(b,subOut.role)-effOvr(a,subOut.role));
+  if(!bench.length){toast(isGK?"Sem guarda-redes no banco":"Sem jogadores disponíveis");return;}
   sheet(`<h3 style="margin-bottom:8px">Quem entra por ${subOut.p.n}?</h3>`+
    bench.map(p=>`<div class="list-item" onclick="confirmSub(${p.id})">
      <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
