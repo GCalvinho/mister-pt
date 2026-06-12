@@ -78,8 +78,9 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .sqt td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
 .sqt tr:last-child td{border-bottom:none}
 .sqt tr{cursor:pointer}
-.sqt .pn{font-weight:700;font-size:14px}
-.sqt .ps{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;margin-top:2px}
+.sqt td.jc{max-width:0;width:100%}
+.sqt .pn{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sqt .ps{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sqt .ptag{display:inline-block;background:var(--card2);border-radius:6px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:10.5px;font-weight:800}
 .sqt .ovn{font-family:ui-monospace,monospace;font-weight:800;font-size:15px;text-align:center}
 .sqt .fitn{font-family:ui-monospace,monospace;font-size:12px;text-align:right}
@@ -765,7 +766,7 @@ function renderSquad(c){
    </tr></thead><tbody>
    ${ps.map(p=>`<tr onclick="playerSheet(${p.id})">
      <td style="text-align:center;width:44px"><div class="posb pos-${posGroup(p.pos)}" style="margin:0 auto">${p.pos}</div></td>
-     <td><div class="pn">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
+     <td class="jc"><div class="pn">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
        <div class="ps">${ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
      <td class="ovn ${ovrClass(p.ovr)}">${p.ovr}</td>
      <td class="fitn" style="color:${fitCol(p.sta)}">${Math.round(p.sta)}%</td>
