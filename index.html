@@ -888,14 +888,14 @@ function chipHTML(p,role,key){
   const t=G.teams[G.my],eo=Math.round(effOvr(p,role));
   return `<div class="chip" data-pid="${p.id}" data-cell="${key}">
    <div class="cdot" style="background:${t.c[0]};color:${t.c[1]}">${eo}</div>
-   <div class="cname">${p.n.split(" ").slice(-1)[0]}${p.susp?"🟥":""}</div>
+   <div class="cname" style="${p.inj?"color:var(--red)":""}">${p.n.split(" ").slice(-1)[0]}${p.inj?"🤕":p.susp?"🟥":""}</div>
    <div class="crole">${role}</div></div>`;
 }
 function benchHTML(p){
   return `<div class="bchip" data-pid="${p.id}">
    <div class="posb pos-${posGroup(p.pos)}" style="width:32px;height:17px;font-size:9px;margin:0 auto 4px">${p.pos}</div>
    <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b>${p.n.split(" ").slice(-1)[0]}</b>
-   <div class="sub">${Math.round(p.sta)}%${p.susp?" 🟥":""}</div></div>`;
+   <div class="sub" style="${p.inj?"color:var(--red);font-weight:800":""}">${p.inj?"🤕 "+injDays(p)+"d":Math.round(p.sta)+"%"+(p.susp?" 🟥":"")}</div></div>`;
 }
 /* Drag & drop por Pointer Events + fallback tap-tap */
 function bindDnD(){
@@ -1432,10 +1432,9 @@ function finishDay(md,mineFx){
     const healthy=t.players.filter(p=>!p.inj);
     if(healthy.length>=14&&Math.random()<0.03){
       const p=pick(healthy.filter(x=>!x.susp)||healthy);
-      if(p){const r=Math.random();
-        const [d,nome]=r<0.70?[rnd(3,8),"lesão ligeira"]:r<0.92?[rnd(10,17),"lesão média"]:[rnd(21,30),"lesão grave"];
+      if(p){const [d,nome]=rollInj(false);
         p.inj=md.date+d*864e5;
-        if(t.i===G.my)pushNews("🚑 Lesão no treino",p.n+" sofreu uma "+nome+" no treino e vai parar cerca de "+d+" dias.");}
+        if(t.i===G.my)pushNews("🚑 Lesão no treino",p.n+" sofreu uma "+nome+" no treino. Paragem estimada: "+d+" dias.");}
     }
   });
   marketAI();
@@ -2350,6 +2349,24 @@ function sendCounter(i){
 </script>
 <script>
 /* ============ LESÕES ============ */
+const INJ_NAMES={
+  leve:["contusão na coxa","entorse ligeira no tornozelo","fadiga muscular","pancada forte no joelho","sobrecarga muscular","corte no sobrolho","traumatismo no pé"],
+  media:["estiramento na coxa direita","estiramento na coxa esquerda","entorse no tornozelo direito","entorse no tornozelo esquerdo","lesão no adutor","contratura nos isquiotibiais","luxação no ombro"],
+  grave:["rotura muscular na coxa","luxação do joelho direito","luxação do joelho esquerdo","lesão nos ligamentos do tornozelo","fratura num dedo do pé","rotura no gémeo"],
+  mgrave:["rotura do ligamento cruzado anterior","rotura do tendão de Aquiles","fratura da tíbia","rotura do menisco (cirurgia)"]
+};
+function rollInj(matchCtx){ // [dias inteiros, nome clínico]
+  const r=Math.random();
+  if(matchCtx){
+    if(r<0.50)return [Math.round(rnd(3,8)),pick(INJ_NAMES.leve)];
+    if(r<0.78)return [Math.round(rnd(10,17)),pick(INJ_NAMES.media)];
+    if(r<0.94)return [Math.round(rnd(21,30)),pick(INJ_NAMES.grave)];
+    return [Math.round(rnd(180,270)),pick(INJ_NAMES.mgrave)];
+  }
+  if(r<0.70)return [Math.round(rnd(3,8)),pick(INJ_NAMES.leve)];
+  if(r<0.92)return [Math.round(rnd(10,17)),pick(INJ_NAMES.media)];
+  return [Math.round(rnd(21,30)),pick(INJ_NAMES.grave)];
+}
 function curDate(){const md=G.cal[Math.min(G.calIdx,G.cal.length-1)];return md?md.date:Date.now()}
 function injDays(p){return p.inj?Math.max(1,Math.ceil((p.inj-curDate())/864e5)):0}
 function matchInjury(){
@@ -2359,14 +2376,12 @@ function matchInjury(){
   const pool=XI.filter(e=>e.band!=="gk");
   const x=pool.length?pick(pool):null;
   if(!x)return;
-  const r=Math.random();
-  const [d,nome]=r<0.50?[rnd(3,8),"lesão ligeira"]:r<0.78?[rnd(10,17),"lesão média"]
-    :r<0.94?[rnd(21,30),"lesão grave"]:[rnd(180,270),"lesão muito grave"];
+  const [d,nome]=rollInj(true);
   x.p.inj=curDate()+d*864e5;
   addLine("cartao","🚑 "+x.p.n+" cai no relvado e não consegue continuar! Má notícia para o "+team.s+".",M.min);
-  if(d>=180)addLine("cartao","Os fisioterapeutas fazem sinal imediato ao banco... isto parece muito sério.",M.min);
+  if(d>=60)addLine("cartao","Os fisioterapeutas fazem sinal imediato ao banco... isto parece muito sério.",M.min);
   evPush(!!side,"🚑",x.p.n,M.min);
-  if(team.i===G.my)pushNews("🚑 Lesão em jogo",x.p.n+" sofreu uma "+nome+" durante a partida e vai parar cerca de "+d+" dias.");
+  if(team.i===G.my)pushNews("🚑 Lesão em jogo",x.p.n+" sofreu uma "+nome+" durante a partida. Paragem estimada: "+d+" dias.");
   // substituição forçada
   const XDr=XI;
   if(M.subs[team.i]>0){
