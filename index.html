@@ -2034,7 +2034,10 @@ function runAttack(home,counter){
   /* portador inicial */
   let pool=(counter||fromCut)?A.filter(a=>a.band!=="gk"):A.filter(a=>a.band==="dm"||a.band==="mid"||a.band==="def");
   if(!pool.length)pool=A.filter(a=>a.band!=="gk");
-  let cur={...weightedPick(pool,a=>a.p.a[0]+10)};
+  if(!pool.length)return;
+  const pk=weightedPick(pool,a=>a.p.a[0]+10);
+  if(!pk||!pk.p)return;
+  let cur={...pk};
   if(counter)cur.y=Math.min(cur.y,0.55);
   const chain=[cur];
   const steps=counter?4:6;
@@ -2352,6 +2355,7 @@ function injDays(p){return p.inj?Math.max(1,Math.ceil((p.inj-curDate())/864e5)):
 function matchInjury(){
   const side=Math.random()<0.5?1:0;
   const XI=side?M.xh:M.xa, team=side?M.th:M.ta;
+  if(XI.length<=8)return; // equipa já demasiado reduzida
   const pool=XI.filter(e=>e.band!=="gk");
   const x=pool.length?pick(pool):null;
   if(!x)return;
