@@ -749,6 +749,7 @@ function showInbox(){
    <div class="inbox-item"><b>${m.t}</b><p>${m.p}</p><div class="sub">${dstr(m.d)}</div></div>`).join(""):`<div class="empty">Sem mensagens.</div>`));
 }
 const ovrClass=o=>o>=78?"o-elite":o>=68?"o-bom":o>=58?"o-med":"o-fraco";
+const ROLE_SHORT={GR:"Guarda-Redes",DL:"Lateral",ALA:"Ala",CEN:"Central",MDF:"Médio Def.",B2B:"Box-to-Box",MCR:"Criativo",EXT:"Extremo",AVI:"Interior",PL:"P. de Lança",F9:"Falso 9"};
 const posGroup=p=>p==="GR"?"GR":["DD","DC","DE"].includes(p)?"D":["MDF","MC","MCO"].includes(p)?"M":"A";
 const POSORD={GR:0,DD:1,DC:2,DE:3,MDF:4,MC:5,MCO:6,EXT:7,PL:8};
 </script>
@@ -767,7 +768,7 @@ function renderSquad(c){
    ${ps.map(p=>`<tr onclick="playerSheet(${p.id})">
      <td style="text-align:center;width:44px"><div class="posb pos-${posGroup(p.pos)}" style="margin:0 auto">${p.pos}</div></td>
      <td class="jc"><div class="pn">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
-       <div class="ps">${ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
+       <div class="ps">${ROLE_SHORT[p.nr]||ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
      <td class="ovn ${ovrClass(p.ovr)}">${p.ovr}</td>
      <td class="fitn" style="color:${fitCol(p.sta)}">${Math.round(p.sta)}%</td>
      <td style="text-align:center;font-size:12px;width:24px">${p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
