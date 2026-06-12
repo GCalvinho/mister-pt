@@ -757,7 +757,7 @@ function renderSquad(c){
   const t=G.teams[G.my];
   const ps=[...t.players].sort((a,b)=>POSORD[a.pos]-POSORD[b.pos]||b.ovr-a.ovr);
   const posCol={GR:"var(--amber)",D:"#7ab4ff",M:"#4fd98a",A:"#ff7aa8"};
-  const ovCls=v=>v>=70?"ov-hi":v>=58?"ov-md":"ov-lo";
+
   const fitCol=v=>v>75?"var(--ok)":v>50?"var(--amber)":"var(--red)";
   c.innerHTML=`<div class="card" style="padding:14px 10px">
    <table class="sqt"><thead><tr>
@@ -767,7 +767,7 @@ function renderSquad(c){
      <td style="text-align:center;width:44px"><div class="posb pos-${posGroup(p.pos)}" style="margin:0 auto">${p.pos}</div></td>
      <td><div class="pn">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
        <div class="ps">${ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
-     <td class="ovn ${ovCls(p.ovr)}">${p.ovr}</td>
+     <td class="ovn ${ovrClass(p.ovr)}">${p.ovr}</td>
      <td class="fitn" style="color:${fitCol(p.sta)}">${Math.round(p.sta)}%</td>
      <td style="text-align:center;font-size:12px;width:24px">${p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
    </tr>`).join("")}
