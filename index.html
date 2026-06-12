@@ -1471,8 +1471,17 @@ function newSeason(){
   // envelhecimento, reforma e regens (25%)
   const newFA=[];
   G.teams.forEach(t=>{
-    t.players.forEach(p=>{p.age++;delete p.cap;p.hist10=[];p.apps10=0;
-      if(p.age>=31){p.a=p.a.map(v=>v*0.975);p.ovr=Math.round(roleOvr(p,p.nr));}});
+    t.players.forEach(p=>{
+      const played=(p.apps10||0)>=5; // jogar com regularidade acelera o desenvolvimento
+      p.age++;delete p.cap;p.hist10=[];p.apps10=0;
+      let f;
+      if(p.age<=23)f=1+clamp(0.008+(p.pot||0.04)*0.22,0.008,0.06)+(played?0.006:0); // crescimento
+      else if(p.age<=30)f=1+(Math.random()<0.5?0.004:-0.004);                        // maturidade (pico)
+      else if(p.age<=32)f=0.978;                                                     // declínio suave
+      else f=0.955;                                                                  // declínio acentuado
+      p.a=p.a.map(v=>clamp(v*f,20,96));
+      p.ovr=Math.round(roleOvr(p,p.nr));
+    });
     const n=Math.round(t.players.length*0.25);
     if(t.i!==G.my){
       const leave=[...t.players].sort((a,b)=>(a.apps10-b.apps10)||(b.age-a.age)||(a.ovr-b.ovr))
@@ -1727,7 +1736,7 @@ function marketAI(){ // a IA faz propostas e negoceia entre si nas janelas
     const targets=t.players.filter(p=>p.listed||p.ovr>=t.base+4||Math.random()<0.06);
     if(targets.length){
       const p=pick(targets);
-      const buyers=G.teams.filter(x=>x.i!==G.my&&!x.b&&x.budget>value(p)*0.7&&x.base>=p.ovr-14);
+      const buyers=G.teams.filter(x=>x.i!==G.my&&!x.b&&x.players.length<21&&x.budget>value(p)*0.7&&x.base>=p.ovr-14);
       if(buyers.length){
         const b=pick(buyers);
         const amt=Math.round(value(p)*rnd(p.listed?0.85:0.9,1.35));
@@ -1736,15 +1745,33 @@ function marketAI(){ // a IA faz propostas e negoceia entre si nas janelas
       }
     }
   }
+  // jogadores na lista de transferências são ativamente cortejados
+  if(G.windowOpen){
+    const pend=(G.offersIn||[]).filter(o=>!o.dead);
+    if(pend.length<2){
+      const myT=G.teams[G.my];
+      const listed=myT.players.filter(p=>p.listed&&!pend.some(o=>o.pid===p.id));
+      for(const p of listed){
+        if(Math.random()>=0.12)continue;
+        const buyers=G.teams.filter(x=>x.i!==G.my&&!x.b&&x.players.length<21&&x.budget>value(p)*0.55&&x.base>=p.ovr-18);
+        if(!buyers.length)continue;
+        const b=pick(buyers);
+        const amt=Math.round(value(p)*rnd(0.80,1.15));
+        G.offersIn.push({from:b.i,pid:p.id,amt});
+        pushNews("📨 Proposta por "+p.n,b.n+" mostra interesse no teu jogador listado e oferece "+fmtM(amt)+". Responde no Mercado.");
+        break; // máx. 1 nova proposta por dia
+      }
+    }
+  }
   // transferências IA<->IA (cor de mercado)
-  if(Math.random()<0.25){
+  if(G.windowOpen&&Math.random()<0.45){
     const seller=pick(G.teams.filter(x=>x.i!==G.my));
     const p=pick(seller.players.filter(x=>x.ovr>=seller.base)||seller.players);
     if(p){const buyers=G.teams.filter(x=>x.i!==G.my&&x.i!==seller.i&&!x.b&&x.budget>value(p));
       if(buyers.length){const b=pick(buyers);const amt=Math.round(value(p)*rnd(0.9,1.2));
         if(b.budget>=amt){b.budget-=amt;seller.budget+=amt;
           seller.players=seller.players.filter(x=>x.id!==p.id);p.t=b.i;p.hist10=[];b.players.push(p);
-          pushNews("Mercado em movimento",p.n+" ("+p.ovr+") troca o "+seller.n+" pelo "+b.n+" por "+fmtM(amt)+".");}}}
+          if(p.ovr>=64)pushNews("Mercado em movimento",p.n+" ("+p.ovr+") troca o "+seller.n+" pelo "+b.n+" por "+fmtM(amt)+".");}}}
   }
 }
 /* =================== ARRANQUE =================== */
