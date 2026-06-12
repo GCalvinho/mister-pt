@@ -31,7 +31,7 @@ const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObje
   --sat:env(safe-area-inset-top,0px);
   --sab:env(safe-area-inset-bottom,0px);
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{margin:0;padding:0;box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
 body{
   background:var(--pitch);color:var(--chalk);
@@ -1683,6 +1683,15 @@ function marketAI(){ // a IA faz propostas e negoceia entre si nas janelas
 }
 /* =================== ARRANQUE =================== */
 if("serviceWorker" in navigator){try{navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}}
+document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});
+document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
+let _lastTap=0;
+document.addEventListener("touchend",e=>{ // guarda extra anti double-tap zoom (iOS antigo)
+  const now=Date.now();
+  if(now-_lastTap<300&&e.target.closest&&e.target.closest(".tabbar,button,.appbar")){e.preventDefault();e.target.closest("button")?.click();}
+  _lastTap=now;
+},{passive:false});
 renderHome();
 </script>
 <script>
