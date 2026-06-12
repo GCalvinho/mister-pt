@@ -72,6 +72,18 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .stat4 .bx span{font-size:9px;color:var(--muted);letter-spacing:.1em}
 .fb{display:inline-flex;width:21px;height:21px;border-radius:6px;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;margin-left:4px}
 .fb.V{background:rgba(61,220,132,.16);color:var(--ok)}.fb.E{background:rgba(255,200,60,.16);color:var(--amber)}.fb.D{background:rgba(255,90,90,.16);color:var(--red)}
+.sqt{width:100%;border-collapse:collapse}
+.sqt th{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.12em;color:var(--muted);text-align:left;padding:4px 6px 8px;font-weight:700}
+.sqt th.ctr{text-align:center}.sqt th.rgt{text-align:right}
+.sqt td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.sqt tr:last-child td{border-bottom:none}
+.sqt tr{cursor:pointer}
+.sqt .pn{font-weight:700;font-size:14px}
+.sqt .ps{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;margin-top:2px}
+.sqt .ptag{display:inline-block;background:var(--card2);border-radius:6px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:10.5px;font-weight:800}
+.sqt .ovn{font-family:ui-monospace,monospace;font-weight:800;font-size:15px;text-align:center}
+.sqt .fitn{font-family:ui-monospace,monospace;font-size:12px;text-align:right}
+.ov-hi{color:var(--ok)}.ov-md{color:var(--amber)}.ov-lo{color:var(--red)}
 .tabbar button.on{color:var(--amber)}
 .tabbar button.on::before{content:"";position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--amber);border-radius:0 0 2px 2px}
 
@@ -744,14 +756,22 @@ const POSORD={GR:0,DD:1,DC:2,DE:3,MDF:4,MC:5,MCO:6,EXT:7,PL:8};
 function renderSquad(c){
   const t=G.teams[G.my];
   const ps=[...t.players].sort((a,b)=>POSORD[a.pos]-POSORD[b.pos]||b.ovr-a.ovr);
-  c.innerHTML=`<div class="card"><h3>Plantel · ${ps.length} jogadores</h3>
-   ${ps.map(p=>`<div class="list-item" onclick="playerSheet(${p.id})">
-     <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-     <div class="grow"><b style="font-size:13.5px">${flag(p)} ${p.n}${p.susp?" 🟥":""}${p.listed?" 🏷":""}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:10px'>★</span>":""}</b>
-       <div class="sub">${ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></div>
-     <div class="sub mono" style="width:34px;text-align:right">${Math.round(p.sta)}%</div>
-     <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div>
-   </div>`).join("")}</div>`;
+  const posCol={GR:"var(--amber)",D:"#7ab4ff",M:"#4fd98a",A:"#ff7aa8"};
+  const ovCls=v=>v>=70?"ov-hi":v>=58?"ov-md":"ov-lo";
+  const fitCol=v=>v>75?"var(--ok)":v>50?"var(--amber)":"var(--red)";
+  c.innerHTML=`<div class="card" style="padding:14px 10px">
+   <table class="sqt"><thead><tr>
+     <th>JOGADOR</th><th class="ctr">POS</th><th class="ctr">OVR</th><th class="rgt">FIT</th><th></th>
+   </tr></thead><tbody>
+   ${ps.map(p=>`<tr onclick="playerSheet(${p.id})">
+     <td><div class="pn">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
+       <div class="ps">${p.age}a · ${fmtM(value(p))}</div></td>
+     <td style="text-align:center"><span class="ptag" style="color:${posCol[posGroup(p.pos)]}">${p.pos}</span></td>
+     <td class="ovn ${ovCls(p.ovr)}">${p.ovr}</td>
+     <td class="fitn" style="color:${fitCol(p.sta)}">${Math.round(p.sta)}%</td>
+     <td style="text-align:center;font-size:12px">${p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
+   </tr>`).join("")}
+   </tbody></table></div>`;
 }
 function playerSheet(id){
   const p=[...G.teams.flatMap(t=>[...t.players,...(t.academy&&t.academy.players||[])]),...(G.freeAgents||[])].find(x=>x.id===id);
