@@ -32,7 +32,7 @@ const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObje
   --sab:env(safe-area-inset-bottom,0px);
 }
 *{margin:0;padding:0;box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overscroll-behavior:none}
+html,body{height:100%;height:100dvh;overscroll-behavior:none;background:var(--pitch)}
 body{
   background:var(--pitch);color:var(--chalk);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -48,7 +48,7 @@ input,select{font:inherit;color:var(--chalk);background:var(--card2);border:1px 
 select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238FAE9C' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 
 /* ===== Estrutura de ecrãs ===== */
-.screen{display:none;position:fixed;inset:0;flex-direction:column;background:var(--pitch)}
+.screen{display:none;position:fixed;top:0;left:0;right:0;height:100%;height:100dvh;flex-direction:column;background:var(--pitch)}
 .screen.on{display:flex}
 .appbar{padding:calc(var(--sat) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d2a1f,var(--pitch))}
 .appbar .club-strip{width:5px;align-self:stretch;border-radius:3px}
@@ -1544,13 +1544,18 @@ function scorersHTML(){
 }
 
 /* =================== MERCADO =================== */
-let mktPos="",mktQ="";
+let mktPos="",mktQ="",mktRole="",mktOvr=0,mktAge=0,mktPot=0,mktFree=0;
+function potN(p){return !p.pot||p.pot<0.02?0:p.pot>=0.22?5:p.pot>=0.15?4:p.pot>=0.09?3:p.pot>=0.05?2:1}
 function renderMarket(c){
   const t=G.teams[G.my];
   const offers=G.offersIn.filter(o=>!o.dead);
-  const all=G.teams.flatMap(x=>x.i===G.my?[]:x.players)
-    .filter(p=>(!mktPos||posGroup(p.pos)===mktPos)&&(!mktQ||p.n.toLowerCase().includes(mktQ)))
-    .sort((a,b)=>b.ovr-a.ovr).slice(0,40);
+  let pool=G.teams.flatMap(x=>x.i===G.my?[]:x.players);
+  if(mktFree===1)pool=[...(G.freeAgents||[])];
+  else if(mktFree===0)pool=pool.concat(G.freeAgents||[]);
+  const all=pool
+    .filter(p=>(!mktPos||posGroup(p.pos)===mktPos)&&(!mktRole||p.nr===mktRole)&&(!mktQ||p.n.toLowerCase().includes(mktQ))
+      &&(!mktOvr||p.ovr>=mktOvr)&&(!mktAge||p.age<=mktAge)&&(!mktPot||potN(p)>=mktPot))
+    .sort((a,b)=>b.ovr-a.ovr).slice(0,50);
   c.innerHTML=`
    <div class="card"><h3>Janela de transferências</h3>
     <p style="font-size:13.5px">${G.windowOpen?"🟢 Mercado aberto — podes comprar e vender.":"🔴 Mercado fechado. Reabre em janeiro/julho."}</p>
@@ -1569,14 +1574,32 @@ function renderMarket(c){
       <div class="grow" onclick="playerSheet(${p.id})"><b style="font-size:13px">${flag(p)} ${p.n}</b>
         <div class="row" style="gap:6px"><span class="sub">${p.age} anos · OVR ${p.ovr}</span><span>${potStars(p)}</span></div></div>
       <button class="btn sm" onclick="signFree(${p.id})">Contratar</button></div>`).join("")}</div>`:""}
-   <div class="card"><h3>Procurar jogadores</h3>
-    <div class="row" style="margin-bottom:8px"><input placeholder="Nome..." value="${mktQ}" oninput="mktQ=this.value.toLowerCase()" onchange="setTab('market')" style="flex:1">
-    <select style="width:96px" onchange="mktPos=this.value;setTab('market')">
-      <option value="">Todos</option><option value="GR" ${mktPos==="GR"?"selected":""}>GR</option><option value="D" ${mktPos==="D"?"selected":""}>Defesas</option><option value="M" ${mktPos==="M"?"selected":""}>Médios</option><option value="A" ${mktPos==="A"?"selected":""}>Avanç.</option></select></div>
-    ${all.map(p=>`<div class="list-item" onclick="playerSheet(${p.id})">
+   <div class="card"><h3>🔎 Procurar jogadores</h3>
+    <input placeholder="Nome do jogador..." value="${mktQ}" oninput="mktQ=this.value.toLowerCase()" onchange="setTab('market')" style="width:100%;margin-bottom:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+     <select onchange="mktPos=this.value;setTab('market')">
+       <option value="">Posição</option><option value="GR" ${mktPos==="GR"?"selected":""}>GR</option><option value="D" ${mktPos==="D"?"selected":""}>Defesas</option><option value="M" ${mktPos==="M"?"selected":""}>Médios</option><option value="A" ${mktPos==="A"?"selected":""}>Avançados</option></select>
+     <select onchange="mktRole=this.value;setTab('market')">
+       <option value="">Role</option>${Object.keys(ROLES).map(r=>`<option value="${r}" ${mktRole===r?"selected":""}>${ROLE_SHORT[r]||ROLES[r].n}</option>`).join("")}</select>
+     <select onchange="mktOvr=+this.value;setTab('market')">
+       <option value="0">OVR mín.</option>${[55,60,65,70,75].map(v=>`<option value="${v}" ${mktOvr===v?"selected":""}>${v}+</option>`).join("")}</select>
+     <select onchange="mktAge=+this.value;setTab('market')">
+       <option value="0">Idade máx.</option>${[19,21,24,28,32].map(v=>`<option value="${v}" ${mktAge===v?"selected":""}>≤ ${v}</option>`).join("")}</select>
+     <select onchange="mktPot=+this.value;setTab('market')">
+       <option value="0">Potencial</option>${[2,3,4,5].map(v=>`<option value="${v}" ${mktPot===v?"selected":""}>${"★".repeat(v)}${v<5?"+":""}</option>`).join("")}</select>
+     <select onchange="mktFree=+this.value;setTab('market')">
+       <option value="0">Livres: todos</option><option value="1" ${mktFree===1?"selected":""}>Só livres</option><option value="2" ${mktFree===2?"selected":""}>Sem livres</option></select>
+    </div>
+    <div class="sub" style="margin-bottom:6px">${all.length} resultado${all.length===1?"":"s"}${all.length===50?" (máx.)":""}</div>
+    ${all.map(p=>p.t===-1?`<div class="list-item">
       <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-      <div class="grow"><b style="font-size:13px">${flag(p)} ${p.n}</b><div class="sub">${G.teams[p.t].s} · ${p.age} anos · ${fmtM(value(p))}</div></div>
-      <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div></div>`).join("")}</div>
+      <div class="grow" onclick="playerSheet(${p.id})"><b style="font-size:13px">${flag(p)} ${p.n} <span style="font-size:9px;background:rgba(61,220,132,.15);color:var(--ok);padding:2px 5px;border-radius:5px;font-weight:800;letter-spacing:.06em">LIVRE</span></b>
+        <div class="row" style="gap:6px"><span class="sub">${p.age} anos · OVR ${p.ovr}</span><span>${potStars(p)}</span></div></div>
+      <button class="btn sm" onclick="signFree(${p.id})">Contratar</button></div>`
+    :`<div class="list-item" onclick="playerSheet(${p.id})">
+      <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
+      <div class="grow"><b style="font-size:13px">${flag(p)} ${p.n}</b><div class="sub">${G.teams[p.t].s} · ${p.age} anos · ${fmtM(value(p))} · ${potStars(p)}</div></div>
+      <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div></div>`).join("")||`<div class="empty">Sem resultados — ajusta os filtros.</div>`}</div>
    <div class="card"><h3>Os teus jogadores listados</h3>${t.players.filter(p=>p.listed).map(p=>`<div class="list-item" onclick="playerSheet(${p.id})"><div class="grow"><b style="font-size:13px">${p.n}</b></div><div class="sub">${fmtM(value(p))}</div></div>`).join("")||`<div class="empty">Nenhum jogador listado.</div>`}</div>`;
 }
 function bidFlow(pid){
