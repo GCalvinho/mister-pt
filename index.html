@@ -799,7 +799,7 @@ function playerSheet(id){
    <div style="margin:12px 0 4px">${bars}</div>
    <div class="kv"><span>Role natural</span><b>${ROLES[p.nr].n}</b></div>
    <div class="kv"><span>Outros roles</span><span>${altRoles}</span></div>
-   <div class="kv"><span>Potencial</span><b>${mine?potStars(p):'<span class="sub">?</span>'}</b></div>
+   ${p.age<=21?`<div class="kv"><span>Potencial</span><b>${mine?potStars(p):'<span class="sub">?</span>'}</b></div>`:""}
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
    ${isFA?`<button class="btn" onclick="signFree(${p.id})">Contratar a custo zero</button>`:
