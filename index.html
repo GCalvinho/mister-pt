@@ -1609,6 +1609,7 @@ function renderMarket(c){
        return `<div class="inbox-item"><b>${G.teams[o.from].n} oferece ${fmtM(o.amt)} por ${p.n}</b>
         <p>Overall ${p.ovr} · valor de mercado ${fmtM(value(p))}</p>
         <div class="offer-actions"><button class="btn sm" onclick="acceptOffer(${i})">Aceitar</button>
+        ${(o.rounds||0)<2?`<button class="btn sm ghost" style="color:var(--amber);border-color:rgba(255,184,28,.4)" onclick="negSheet(${i})">Negociar</button>`:""}
         <button class="btn sm ghost" onclick="rejectOffer(${i})">Recusar</button></div></div>`}).join("")}</div>`:""}
    </div>
    <div class="card"><h3>🔎 Procurar jogadores</h3>
@@ -2243,5 +2244,58 @@ function promoteSwap(aid,pid){
   pushNews("🚪 Rescisão",p.n+" deixa o clube para abrir vaga no plantel.");
   closeSheet();
   promotePlayer(aid);
+}
+</script>
+<script>
+/* ============ NEGOCIAÇÃO DE PROPOSTAS RECEBIDAS ============
+   O comprador tem um limite secreto (orçamento × interesse). Pedir acima
+   do limite arrisca contraproposta — ou perder o negócio de vez.       */
+function negSheet(i){
+  const o=G.offersIn[i];if(!o||o.dead)return;
+  const t=G.teams[G.my],p=t.players.find(x=>x.id===o.pid);
+  if(!p){o.dead=1;setTab("market");return;}
+  const b=G.teams[o.from],v=value(p);
+  if(o.wmax==null)o.wmax=Math.max(Math.round(o.amt*1.04),
+    Math.min(Math.round(v*(1.05+Math.random()*0.45)),Math.round(b.budget*0.9)));
+  const lo=o.amt,hi=Math.max(Math.round(o.amt*1.05),Math.round(Math.max(v*1.7,o.amt*1.9)));
+  const def=clamp(Math.round(v*1.15),lo,hi);
+  sheet(`<h3>Negociar com ${b.n}</h3>
+   <div class="kv" style="margin-top:8px"><span>Jogador</span><b>${flag(p)} ${p.n}</b></div>
+   <div class="kv"><span>Proposta atual</span><b>${fmtM(o.amt)}</b></div>
+   <div class="kv"><span>Valor de mercado</span><b>${fmtM(v)}</b></div>
+   <p class="sub" style="margin:10px 0 4px">Quanto pedes? Cuidado: pedir demais pode fazer o ${b.s} desistir do negócio.</p>
+   <input type="range" id="neg-val" min="${lo}" max="${hi}" step="50000" value="${def}"
+     oninput="$('neg-lbl').textContent=fmtM(+this.value)" style="width:100%">
+   <div style="text-align:center;margin:6px 0 12px"><b id="neg-lbl" style="font-size:20px;color:var(--amber)">${fmtM(def)}</b></div>
+   <button class="btn" onclick="sendCounter(${i})">Enviar contraproposta</button>
+   <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
+}
+function sendCounter(i){
+  const o=G.offersIn[i];if(!o||o.dead){closeSheet();return;}
+  const t=G.teams[G.my],p=t.players.find(x=>x.id===o.pid),b=G.teams[o.from];
+  const ask=+$("neg-val").value;
+  o.rounds=(o.rounds||0)+1;
+  closeSheet();
+  if(ask<=o.wmax){                       // dentro do limite: aceitam pagar o pedido
+    o.amt=ask;
+    pushNews("🤝 Negociação fechada",b.n+" aceita pagar "+fmtM(ask)+" por "+p.n+".");
+    toast(b.s+" aceita "+fmtM(ask)+"!");
+    acceptOffer(i);
+    return;
+  }
+  if(ask<=o.wmax*1.25&&o.rounds<2){      // perto do limite: contrapropõem
+    const mid=Math.min(o.wmax,Math.round((o.amt+ask)/2/50000)*50000);
+    if(mid>o.amt*1.02){
+      o.amt=mid;
+      pushNews("📨 Contraproposta",b.n+" não chega aos "+fmtM(ask)+" mas sobe a oferta por "+p.n+" para "+fmtM(mid)+".");
+      toast(b.s+" contrapropõe "+fmtM(mid));
+      setTab("market");
+      return;
+    }
+  }
+  o.dead=1;                              // pediste demais: retiram-se
+  pushNews("❌ Negócio desfeito",b.n+" considera "+fmtM(ask)+" exagerado e retira a proposta por "+p.n+".");
+  toast(b.s+" retira a proposta...");
+  setTab("market");
 }
 </script>
