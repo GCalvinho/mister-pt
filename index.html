@@ -712,7 +712,7 @@ function startCareer(ti){
 function pushNews(t,p,offer){G.inbox.unshift({t,p,d:G.cal[G.calIdx]?G.cal[G.calIdx].date:Date.now(),offer:offer||null,unread:1});$("menu-dot").style.display="block"}
 
 /* ---- Ecrã principal ---- */
-let tab="play";
+let tab="geral";
 function openMain(){
   show("scr-main");refreshHeader();setTab(tab);
 }
