@@ -782,19 +782,24 @@ function playerSheet(id){
   const inAcad=!isFA&&G.teams[p.t].academy&&G.teams[p.t].academy.players.some(x=>x.id===id);
   const mine=p.t===G.my,gk=p.nr==="GR";
   const names=gk?ATTR_NAMES_GK:ATTR_NAMES_F;
-  const bars=p.a.map((v,i)=>`<div class="attr-row"><div class="al">${names[i]}</div>
+  const hid=mine?[]:maskIdx(p);
+  const bars=p.a.map((v,i)=>hid.includes(i)
+    ?`<div class="attr-row"><div class="al">${names[i]}</div>
+    <div class="ab"><i style="width:100%;background:repeating-linear-gradient(45deg,var(--card2),var(--card2) 6px,transparent 6px,transparent 12px)"></i></div>
+    <div class="av" style="color:var(--muted)">?</div></div>`
+    :`<div class="attr-row"><div class="al">${names[i]}</div>
     <div class="ab"><i style="width:${v}%;background:${v>=78?"#FFB81C":v>=65?"#37C871":"#5a8a6f"}"></i></div>
     <div class="av">${Math.round(v)}</div></div>`).join("");
   const altRoles=Object.keys(ROLES).filter(r=>(r==="GR")===(p.nr==="GR")&&r!==p.nr)
     .map(r=>({r,o:Math.round(effOvr(p,r))})).sort((a,b)=>b.o-a.o).slice(0,3)
-    .map(x=>`<span class="pill" style="background:var(--card2);color:var(--muted)">${ROLES[x.r].n} ${x.o}</span>`).join(" ");
+    .map(x=>`<span class="pill" style="background:var(--card2);color:var(--muted)">${ROLES[x.r].n} ${mine?x.o:"?"}</span>`).join(" ");
   sheet(`<div class="row"><div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
     <div class="grow"><b style="font-size:17px">${flag(p)} ${p.n}</b><div class="sub">${p.t>=0?G.teams[p.t].n:"🆓 Sem clube — Livre"} · ${p.age} anos${p.gen?" · formado no clube":""}</div></div>
-    <div class="ovr ${ovrClass(p.ovr)}" style="font-size:24px;width:auto">${p.ovr}</div></div>
+    <div class="ovr ${mine?ovrClass(p.ovr):"o-med"}" style="font-size:24px;width:auto">${mine?p.ovr:"?"}</div></div>
    <div style="margin:12px 0 4px">${bars}</div>
    <div class="kv"><span>Role natural</span><b>${ROLES[p.nr].n}</b></div>
    <div class="kv"><span>Outros roles</span><span>${altRoles}</span></div>
-   <div class="kv"><span>Potencial</span><b>${potStars(p)}</b></div>
+   <div class="kv"><span>Potencial</span><b>${mine?potStars(p):'<span class="sub">?</span>'}</b></div>
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
    ${isFA?`<button class="btn" onclick="signFree(${p.id})">Contratar a custo zero</button>`:
@@ -1546,6 +1551,11 @@ function scorersHTML(){
 /* =================== MERCADO =================== */
 let mktPos="",mktQ="",mktRole="",mktAge=0,mktFree=0,mktPage=0;
 const GROUP_ROLES={GR:["GR"],D:["DL","CEN"],M:["MDF","B2B","MCR"],A:["EXT","PL"]};
+function maskIdx(p){ // atributos escondidos para jogadores que não são meus (estável por id)
+  const n=2+(p.id%2);let s=(p.id*2654435761)>>>0;const arr=[0,1,2,3,4],out=[];
+  for(let k=0;k<n;k++){s=(s*1103515245+12345)>>>0;out.push(arr.splice(s%arr.length,1)[0]);}
+  return out;
+}
 function potN(p){return !p.pot||p.pot<0.02?0:p.pot>=0.22?5:p.pot>=0.15?4:p.pot>=0.09?3:p.pot>=0.05?2:1}
 function renderMarket(c){
   const t=G.teams[G.my];
@@ -1590,15 +1600,17 @@ function renderMarket(c){
       <input type="checkbox" ${mktFree?"checked":""} onchange="mktFree=this.checked?1:0;mktPage=0;setTab('market')" style="width:18px;height:18px;accent-color:var(--amber)">
       Só jogadores livres</label>
     <div class="sub" style="margin-bottom:6px">${filtered.length} resultado${filtered.length===1?"":"s"}${pages>1?` · página ${mktPage+1}/${pages}`:""}</div>
-    ${all.map(p=>p.t===-1?`<div class="list-item">
-      <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-      <div class="grow" onclick="playerSheet(${p.id})"><b style="font-size:13px">${flag(p)} ${p.n} <span style="font-size:9px;background:rgba(61,220,132,.15);color:var(--ok);padding:2px 5px;border-radius:5px;font-weight:800;letter-spacing:.06em">LIVRE</span></b>
-        <div class="row" style="gap:6px"><span class="sub">${p.age} anos · OVR ${p.ovr}</span><span>${potStars(p)}</span></div></div>
-      <button class="btn sm" onclick="signFree(${p.id})">Contratar</button></div>`
-    :`<div class="list-item" onclick="playerSheet(${p.id})">
-      <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-      <div class="grow"><b style="font-size:13px">${flag(p)} ${p.n}</b><div class="sub">${G.teams[p.t].s} · ${p.age} anos · ${fmtM(value(p))} · ${potStars(p)}</div></div>
-      <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div></div>`).join("")||`<div class="empty">Sem resultados — ajusta os filtros.</div>`}
+    ${all.length?`<table class="sqt"><thead><tr>
+      <th class="ctr">POS</th><th>JOGADOR</th><th class="ctr">OVR</th><th></th>
+    </tr></thead><tbody>
+    ${all.map(p=>`<tr onclick="playerSheet(${p.id})">
+      <td style="text-align:center;width:44px"><div class="posb pos-${posGroup(p.pos)}" style="margin:0 auto">${p.pos}</div></td>
+      <td class="jc"><div class="pn">${flag(p)} ${p.n}${p.t===-1?' <span style="font-size:9px;background:rgba(61,220,132,.15);color:var(--ok);padding:2px 5px;border-radius:5px;font-weight:800;letter-spacing:.06em;vertical-align:2px">LIVRE</span>':""}</div>
+        <div class="ps">${p.t===-1?"Sem clube":G.teams[p.t].s} · ${ROLE_SHORT[p.nr]||ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
+      <td class="ovn" style="color:var(--muted)">?</td>
+      <td style="text-align:center;width:30px">${p.t===-1?`<button class="btn sm" style="padding:6px 10px" onclick="event.stopPropagation();signFree(${p.id})">＋</button>`:""}</td>
+    </tr>`).join("")}
+    </tbody></table>`:`<div class="empty">Sem resultados — ajusta os filtros.</div>`}
     ${pages>1?`<div class="row" style="justify-content:space-between;margin-top:10px">
       <button class="btn ghost sm" style="width:auto;padding:8px 14px" ${mktPage===0?"disabled":""} onclick="mktPage--;setTab('market')">‹ Anterior</button>
       <span class="sub mono">${mktPage+1} / ${pages}</span>
