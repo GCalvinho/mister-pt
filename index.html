@@ -774,7 +774,7 @@ function renderSquad(c){
        <div class="ps">${ROLE_SHORT[p.nr]||ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
      <td class="ovn ${ovrClass(p.ovr)}">${p.ovr}</td>
      <td class="fitn" style="color:${fitCol(p.sta)}">${Math.round(p.sta)}%</td>
-     <td style="text-align:center;font-size:12px;width:24px">${p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
+     <td style="text-align:center;font-size:12px;width:24px">${p.inj?"🤕":p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
    </tr>`).join("")}
    </tbody></table></div>`;
 }
@@ -805,6 +805,7 @@ function playerSheet(id){
    ${p.age<=23?`<div class="kv"><span>Potencial</span><b>${mine?potStars(p):'<span class="sub">?</span>'}</b></div>`:""}
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Salário</span><b>${fmtM(wage(p))}<span class="sub">/época</span></b></div>
+   ${p.inj?`<div class="kv"><span>Estado</span><b style="color:var(--red)">🤕 Lesionado · volta em ~${injDays(p)} dias</b></div>`:""}
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
    ${isFA?`<button class="btn" onclick="signFree(${p.id})">Contratar a custo zero</button>`:
      inAcad?(mine?`<button class="btn" onclick="promotePlayer(${p.id})">↑ Promover ao plantel</button>`:""):
@@ -820,7 +821,7 @@ function autoTactic(){ // 4-3-3 inicial com os melhores
   const t=G.teams[G.my],used=new Set(),grid={};
   const best=(roles,zone)=>{
     let bp=null,bo=-1;
-    t.players.forEach(p=>{if(used.has(p.id)||p.susp)return;
+    t.players.forEach(p=>{if(used.has(p.id)||p.susp||p.inj)return;
       roles.forEach(r=>{const o=effOvr(p,r);if(o>bo){bo=o;bp={pid:p.id,role:r}}})});
     if(bp){used.add(bp.pid);grid[zone]=bp;}
   };
@@ -996,7 +997,7 @@ function xiValid(){
   const T=G.tactic,keys=Object.keys(T.grid);
   const t=G.teams[G.my];
   // remove suspensos
-  keys.forEach(k=>{const p=t.players.find(x=>x.id===T.grid[k].pid);if(!p||p.susp)delete T.grid[k]});
+  keys.forEach(k=>{const p=t.players.find(x=>x.id===T.grid[k].pid);if(!p||p.susp||p.inj)delete T.grid[k]});
   return Object.keys(T.grid).length===11&&T.grid["0-2"];
 }
 </script>
@@ -1006,7 +1007,7 @@ function xiValid(){
 function aiTactic(t){ // tática automática para equipas IA
   const used=new Set(),grid={};
   const best=(roles,zone)=>{let bp=null,bo=-1;
-    t.players.forEach(p=>{if(used.has(p.id)||p.susp)return;
+    t.players.forEach(p=>{if(used.has(p.id)||p.susp||p.inj)return;
       roles.forEach(r=>{const o=effOvr(p,r);if(o>bo){bo=o;bp={pid:p.id,role:r}}})});
     if(bp){used.add(bp.pid);grid[zone]=bp;}};
   best(["GR"],"0-2");best(["CEN"],"1-1");best(["CEN"],"1-3");best(["DL"],"1-0");best(["DL"],"1-4");
@@ -1109,6 +1110,7 @@ function stepMinute(){
   let chA=base*(0.55+(1-ph))*(sa.atk/(sh.def+sa.atk))*2*(M.Ta.contra&&M.Th.ment===2?1.15:1);
   if(M.mom&&M.mom.kind==="cut"&&M.min-M.mom.min<=2){if(M.mom.side===1)chH*=1.6;else chA*=1.6;}
   const r=Math.random();
+  if(Math.random()<0.0042&&M.min>5&&M.min<88)matchInjury();
   if(r<chH)runAttack(1);else if(r<chH+chA)runAttack(0);
   else if(Math.random()<0.10)addLine("",line(COMM.meio,{a:Math.random()<ph?M.th.n:M.ta.n}),M.min);
   // cansaço
@@ -1143,7 +1145,7 @@ function aiBrain(home){
     const tired=XI.filter(x=>x.band!=="gk"&&x.p.sta<55).sort((a,b)=>a.p.sta-b.p.sta)[0];
     if(tired){
       const inGrid=new Set(XI.map(x=>x.p.id));
-      const sub=team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&(p.nr==="GR")===false)
+      const sub=team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===false)
         .sort((a,b)=>effOvr(b,tired.role)-effOvr(a,tired.role))[0];
       if(sub){doSub(team,XI,tired,sub);}
     }
@@ -1240,7 +1242,7 @@ function pickSubFor(pid){
   subOut=mine.XI.find(x=>x.p.id===pid);
   const inGrid=new Set(mine.XI.map(x=>x.p.id));
   const isGK=subOut.band==="gk";
-  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&(p.nr==="GR")===isGK).sort((a,b)=>effOvr(b,subOut.role)-effOvr(a,subOut.role));
+  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===isGK).sort((a,b)=>effOvr(b,subOut.role)-effOvr(a,subOut.role));
   if(!bench.length){toast(isGK?"Sem guarda-redes no banco":"Sem jogadores disponíveis");return;}
   sheet(`<h3 style="margin-bottom:8px">Quem entra por ${subOut.p.n}?</h3>`+
    bench.map(p=>`<div class="list-item" onclick="confirmSub(${p.id})">
@@ -1420,6 +1422,22 @@ function finishDay(md,mineFx){
     G.teams.forEach(t=>{if(!t.b){const w=Math.round(teamWages(t)/12);t.budget-=w;
       if(t.i===G.my){G.revenue.season.wages=(G.revenue.season.wages||0)+w;G.revenue.season.total-=w;}}});
   }
+  // lesões: recuperações e treinos
+  G.teams.forEach(t=>{
+    if(t.b)return;
+    t.players.forEach(p=>{
+      if(p.inj&&md.date>=p.inj){p.inj=0;p.sta=Math.min(p.sta,75);
+        if(t.i===G.my)pushNews("✅ Recuperado",p.n+" completou a recuperação e voltou aos treinos.");}
+    });
+    const healthy=t.players.filter(p=>!p.inj);
+    if(healthy.length>=14&&Math.random()<0.03){
+      const p=pick(healthy.filter(x=>!x.susp)||healthy);
+      if(p){const r=Math.random();
+        const [d,nome]=r<0.70?[rnd(3,8),"lesão ligeira"]:r<0.92?[rnd(10,17),"lesão média"]:[rnd(21,30),"lesão grave"];
+        p.inj=md.date+d*864e5;
+        if(t.i===G.my)pushNews("🚑 Lesão no treino",p.n+" sofreu uma "+nome+" no treino e vai parar cerca de "+d+" dias.");}
+    }
+  });
   marketAI();
   G.calIdx++;
   G.windowOpen=isWindowOpen();
@@ -1489,7 +1507,7 @@ function newSeason(){
       const extra=n-leave.length;
       if(extra>0)leave.push(...[...t.players].filter(p=>!leave.includes(p)).sort((a,b)=>b.age-a.age).slice(0,extra));
       t.players=t.players.filter(p=>!leave.includes(p));
-      leave.forEach(p=>{if(p.age<34){p.t=-1;p.listed=0;p.susp=0;newFA.push(p);}});
+      leave.forEach(p=>{if(p.age<34){p.t=-1;p.listed=0;p.susp=0;p.inj=0;newFA.push(p);}});
     } else {
       G._relRecs=[...t.players].sort((a,b)=>(a.apps10-b.apps10)||(b.age-a.age)||(a.ovr-b.ovr))
         .filter(p=>p.age>=33||p.ovr<t.base-8).slice(0,Math.max(2,n)).map(p=>p.id);
@@ -2167,7 +2185,7 @@ function renderGeral(c){
      <p class="sub" style="margin-bottom:8px">Sem jogo agendado — avança o calendário.</p>
      <button class="btn ghost" onclick="kickoff(0)">⏩ Avançar dia</button></div>`;
   }
-  const baixas=t.players.filter(p=>p.susp||p.sta<55);
+  const baixas=t.players.filter(p=>p.inj||p.susp||p.sta<55);
   c.innerHTML=nextHTML+`
    <div class="card"><div class="dash-t">Época</div>
     <div class="stat4">
@@ -2189,7 +2207,7 @@ function renderGeral(c){
    <div class="card"><div class="dash-t">Baixas</div>
     ${baixas.length?baixas.map(p=>`<div class="row" style="justify-content:space-between;padding:5px 0">
       <span style="font-size:13.5px">${flag(p)} ${p.n}</span>
-      ${p.susp?'<span style="font-size:12px;color:var(--red)">🟥 Suspenso</span>':'<span style="font-size:12px;color:var(--amber)">🔋 Cansado '+Math.round(p.sta)+'%</span>'}</div>`).join("")
+      ${p.inj?'<span style="font-size:12px;color:var(--red)">🤕 Lesionado · ~'+injDays(p)+'d</span>':p.susp?'<span style="font-size:12px;color:var(--red)">🟥 Suspenso</span>':'<span style="font-size:12px;color:var(--amber)">🔋 Cansado '+Math.round(p.sta)+'%</span>'}</div>`).join("")
      :'<p style="font-size:14px">Nenhuma baixa ✅</p>'}
    </div>`;
 }
@@ -2202,7 +2220,7 @@ function doRelease(p){
   const t=G.teams[G.my];
   t.players=t.players.filter(x=>x.id!==p.id);
   cleanTactic(p.id);
-  if(p.age<34&&p.ovr>=48){p.t=-1;p.listed=0;p.susp=0;G.freeAgents=G.freeAgents||[];G.freeAgents.push(p);}
+  if(p.age<34&&p.ovr>=48){p.t=-1;p.listed=0;p.susp=0;p.inj=0;G.freeAgents=G.freeAgents||[];G.freeAgents.push(p);}
 }
 function askRelease(id){
   const t=G.teams[G.my],p=t.players.find(x=>x.id===id);
@@ -2212,6 +2230,7 @@ function askRelease(id){
    <div class="kv" style="margin-top:10px"><span>Idade / Overall</span><b>${p.age} anos · ${p.ovr}</b></div>
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Salário</span><b>${fmtM(wage(p))}<span class="sub">/época</span></b></div>
+   ${p.inj?`<div class="kv"><span>Estado</span><b style="color:var(--red)">🤕 Lesionado · volta em ~${injDays(p)} dias</b></div>`:""}
    <p class="sub" style="margin:10px 0 4px">A rescisão é gratuita mas não recebes nada — se queres encaixe, coloca-o antes na lista de transferências. ${p.age<34&&p.ovr>=48?"Vai para a bolsa de Jogadores Livres (outro clube pode contratá-lo a custo zero).":"Termina a carreira."}</p>
    <button class="btn" style="background:var(--red)" onclick="confirmRelease(${id})">Confirmar dispensa</button>
    <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
@@ -2324,5 +2343,43 @@ function sendCounter(i){
   pushNews("❌ Negócio desfeito",b.n+" considera "+fmtM(ask)+" exagerado e retira a proposta por "+p.n+".");
   toast(b.s+" retira a proposta...");
   setTab("market");
+}
+</script>
+<script>
+/* ============ LESÕES ============ */
+function curDate(){const md=G.cal[Math.min(G.calIdx,G.cal.length-1)];return md?md.date:Date.now()}
+function injDays(p){return p.inj?Math.max(1,Math.ceil((p.inj-curDate())/864e5)):0}
+function matchInjury(){
+  const side=Math.random()<0.5?1:0;
+  const XI=side?M.xh:M.xa, team=side?M.th:M.ta;
+  const pool=XI.filter(e=>e.band!=="gk");
+  const x=pool.length?pick(pool):null;
+  if(!x)return;
+  const r=Math.random();
+  const [d,nome]=r<0.50?[rnd(3,8),"lesão ligeira"]:r<0.78?[rnd(10,17),"lesão média"]
+    :r<0.94?[rnd(21,30),"lesão grave"]:[rnd(180,270),"lesão muito grave"];
+  x.p.inj=curDate()+d*864e5;
+  addLine("cartao","🚑 "+x.p.n+" cai no relvado e não consegue continuar! Má notícia para o "+team.s+".",M.min);
+  if(d>=180)addLine("cartao","Os fisioterapeutas fazem sinal imediato ao banco... isto parece muito sério.",M.min);
+  evPush(!!side,"🚑",x.p.n,M.min);
+  if(team.i===G.my)pushNews("🚑 Lesão em jogo",x.p.n+" sofreu uma "+nome+" durante a partida e vai parar cerca de "+d+" dias.");
+  // substituição forçada
+  const XDr=XI;
+  if(M.subs[team.i]>0){
+    const inGrid=new Set(XI.map(e=>e.p.id));
+    const rep=team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===(x.band==="gk"))
+      .sort((a,b)=>effOvr(b,x.role)-effOvr(a,x.role))[0];
+    if(rep){
+      M.subs[team.i]--;
+      const ix=XI.indexOf(x);
+      XI[ix]={p:rep,role:x.role,zone:x.zone,band:x.band};
+      addLine("info","Substituição forçada no "+team.n+": entra "+rep.n+" para o lugar do lesionado.",M.min);
+      evPush(team.i===M.fx.h,"🔄",rep.n,M.min);
+      return;
+    }
+  }
+  const ix=XI.indexOf(x);
+  if(ix>=0)XI.splice(ix,1);
+  addLine("info","O "+team.s+" fica reduzido a "+XI.length+" jogadores — sem substituições disponíveis!",M.min);
 }
 </script>
