@@ -799,7 +799,8 @@ function playerSheet(id){
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
    ${isFA?`<button class="btn" onclick="signFree(${p.id})">Contratar a custo zero</button>`:
      inAcad?(mine?`<button class="btn" onclick="promotePlayer(${p.id})">↑ Promover ao plantel</button>`:""):
-     mine?`<button class="btn ghost" onclick="toggleList(${p.id})">${p.listed?"Retirar da lista de transferências":"Colocar na lista de transferências"}</button>`:
+     mine?`<button class="btn ghost" onclick="toggleList(${p.id})">${p.listed?"Retirar da lista de transferências":"Colocar na lista de transferências"}</button>
+      <button class="btn ghost" style="color:var(--red);border-color:rgba(255,90,90,.35)" onclick="askRelease(${p.id})">🚪 Dispensar jogador</button>`:
      `<button class="btn" onclick="bidFlow(${p.id})">Fazer proposta</button>`}`);
 }
 function toggleList(id){const p=G.teams[G.my].players.find(x=>x.id===id);p.listed=p.listed?0:1;closeSheet();toast(p.listed?"Na lista de transferências":"Retirado da lista");if(tab==="squad")setTab("squad")}
@@ -1444,12 +1445,17 @@ function newSeason(){
     t.players.forEach(p=>{p.age++;delete p.cap;p.hist10=[];p.apps10=0;
       if(p.age>=31){p.a=p.a.map(v=>v*0.975);p.ovr=Math.round(roleOvr(p,p.nr));}});
     const n=Math.round(t.players.length*0.25);
-    const leave=[...t.players].sort((a,b)=>(a.apps10-b.apps10)||(b.age-a.age)||(a.ovr-b.ovr))
-      .filter(p=>p.age>=33||p.ovr<t.base-8).slice(0,n);
-    const extra=n-leave.length;
-    if(extra>0)leave.push(...[...t.players].filter(p=>!leave.includes(p)).sort((a,b)=>b.age-a.age).slice(0,extra));
-    t.players=t.players.filter(p=>!leave.includes(p));
-    leave.forEach(p=>{if(p.age<34){p.t=-1;p.listed=0;p.susp=0;newFA.push(p);}});
+    if(t.i!==G.my){
+      const leave=[...t.players].sort((a,b)=>(a.apps10-b.apps10)||(b.age-a.age)||(a.ovr-b.ovr))
+        .filter(p=>p.age>=33||p.ovr<t.base-8).slice(0,n);
+      const extra=n-leave.length;
+      if(extra>0)leave.push(...[...t.players].filter(p=>!leave.includes(p)).sort((a,b)=>b.age-a.age).slice(0,extra));
+      t.players=t.players.filter(p=>!leave.includes(p));
+      leave.forEach(p=>{if(p.age<34){p.t=-1;p.listed=0;p.susp=0;newFA.push(p);}});
+    } else {
+      G._relRecs=[...t.players].sort((a,b)=>(a.apps10-b.apps10)||(b.age-a.age)||(a.ovr-b.ovr))
+        .filter(p=>p.age>=33||p.ovr<t.base-8).slice(0,Math.max(2,n)).map(p=>p.id);
+    }
     if(!t.academy)t.academy={level:1,players:[]};
     (t.academy.players||[]).forEach(p=>{p.age++;const g=1.015+0.01*t.academy.level;p.a=p.a.map(v=>clamp(v*g,15,99));p.ovr=Math.round(roleOvr(p,p.nr));});
     const exit21=(t.academy.players||[]).filter(p=>p.age>=21);
@@ -1461,7 +1467,14 @@ function newSeason(){
       sorted.slice(12).forEach(p=>{p.t=-1;newFA.push(p);});
       t.academy.players=sorted.slice(0,12);
     }
-    if(t.i!==G.my){aiAcademyPromote(t);aiStadiumInvest(t);}
+    if(t.i!==G.my){
+      aiAcademyPromote(t);aiStadiumInvest(t);
+      while(t.players.length>21){ // limite de plantel
+        const w=[...t.players].sort((a,b)=>(a.apps10-b.apps10)||(a.ovr-b.ovr))[0];
+        t.players=t.players.filter(p=>p!==w);
+        if(w.age<34&&w.ovr>=48){w.t=-1;w.listed=0;newFA.push(w);}
+      }
+    }
     else{
       pushNews("🎓 Academia: "+n+" novos talentos","Chegaram "+n+" jovens de 16 anos. Desenvolvem-se até aos 21 — quem não for promovido sai para a bolsa de Jogadores Livres."+(exit21.length?" Saíram agora: "+exit21.map(p=>p.n).join(", ")+".":""));
     }
@@ -1485,6 +1498,7 @@ function newSeason(){
   if(G.freeAgents.length){const best=G.freeAgents[0];
     pushNews("🆓 Bolsa de Jogadores Livres","Há "+G.freeAgents.length+" jogadores livres (custo zero) no Mercado durante esta época. Destaque: "+best.n+" ("+best.ovr+", "+best.age+" anos). Quem não for contratado desaparece no fim da época.");}
   saveGame();refreshHeader();setTab("geral");
+  if(G._relRecs&&G._relRecs.length)setTimeout(releaseReviewSheet,450);
 }
 </script>
 <script>
@@ -1566,6 +1580,7 @@ function renderMarket(c){
    <div class="card"><h3>Os teus jogadores listados</h3>${t.players.filter(p=>p.listed).map(p=>`<div class="list-item" onclick="playerSheet(${p.id})"><div class="grow"><b style="font-size:13px">${p.n}</b></div><div class="sub">${fmtM(value(p))}</div></div>`).join("")||`<div class="empty">Nenhum jogador listado.</div>`}</div>`;
 }
 function bidFlow(pid){
+  if(G.teams[G.my].players.length>=21){toast("Plantel no limite (21/21) — dispensa alguém primeiro");return;}
   if(!G.windowOpen){toast("O mercado está fechado");return}
   const p=G.teams.flatMap(t=>t.players).find(x=>x.id===pid);
   const v=value(p),t=G.teams[G.my];
@@ -1603,6 +1618,7 @@ function sendBid(pid){
 }
 function signFree(pid){
   const t=G.teams[G.my];
+  if(t.players.length>=21){toast("Plantel no limite (21/21) — dispensa alguém primeiro");return;}
   const p=(G.freeAgents||[]).find(x=>x.id===pid);
   if(!p){toast("Já não está disponível");return;}
   G.freeAgents=G.freeAgents.filter(x=>x.id!==pid);
@@ -1718,7 +1734,7 @@ function aiAcademyPromote(team){
   const eligible=team.academy.players.filter(p=>p.age>=17).sort((a,b)=>b.ovr-a.ovr);
   const need=Math.max(0,18-team.players.length);
   const toPromote=eligible.slice(0,Math.max(need,Math.min(2,eligible.length)));
-  toPromote.forEach(p=>{p.gen=1;p.sta=100;p.hist10=[];p.apps10=0;team.players.push(p);});
+  toPromote.forEach(p=>{if(team.players.length>=21)return;p.gen=1;p.sta=100;p.hist10=[];p.apps10=0;team.players.push(p);});
   team.academy.players=team.academy.players.filter(p=>!toPromote.includes(p));
 }
 
@@ -1740,6 +1756,7 @@ function promotePlayer(id){
   const t=G.teams[G.my];
   const p=t.academy.players.find(x=>x.id===id);
   if(!p)return;
+  if(t.players.length>=21){promoteSwapSheet(id);return;}
   t.academy.players=t.academy.players.filter(x=>x.id!==id);
   p.gen=1;p.sta=100;p.hist10=[];p.apps10=0;
   t.players.push(p);
@@ -2071,5 +2088,83 @@ function renderGeral(c){
       ${p.susp?'<span style="font-size:12px;color:var(--red)">🟥 Suspenso</span>':'<span style="font-size:12px;color:var(--amber)">🔋 Cansado '+Math.round(p.sta)+'%</span>'}</div>`).join("")
      :'<p style="font-size:14px">Nenhuma baixa ✅</p>'}
    </div>`;
+}
+</script>
+<script>
+/* ============ DISPENSAS MANUAIS, REVISÃO DE FIM DE ÉPOCA, PROMOÇÃO COM TROCA ============ */
+const SQUAD_MAX=21;
+function cleanTactic(pid){if(G.tactic&&G.tactic.grid)for(const k in G.tactic.grid)if(G.tactic.grid[k].pid===pid)delete G.tactic.grid[k];}
+function doRelease(p){
+  const t=G.teams[G.my];
+  t.players=t.players.filter(x=>x.id!==p.id);
+  cleanTactic(p.id);
+  if(p.age<34&&p.ovr>=48){p.t=-1;p.listed=0;p.susp=0;G.freeAgents=G.freeAgents||[];G.freeAgents.push(p);}
+}
+function askRelease(id){
+  const t=G.teams[G.my],p=t.players.find(x=>x.id===id);
+  if(!p)return;
+  if(t.players.length<=14){toast("Plantel demasiado curto para dispensar (mín. 14)");return;}
+  sheet(`<h3>Dispensar ${p.n}?</h3>
+   <div class="kv" style="margin-top:10px"><span>Idade / Overall</span><b>${p.age} anos · ${p.ovr}</b></div>
+   <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
+   <p class="sub" style="margin:10px 0 4px">A rescisão é gratuita mas não recebes nada — se queres encaixe, coloca-o antes na lista de transferências. ${p.age<34&&p.ovr>=48?"Vai para a bolsa de Jogadores Livres (outro clube pode contratá-lo a custo zero).":"Termina a carreira."}</p>
+   <button class="btn" style="background:var(--red)" onclick="confirmRelease(${id})">Confirmar dispensa</button>
+   <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
+}
+function confirmRelease(id){
+  const t=G.teams[G.my],p=t.players.find(x=>x.id===id);
+  if(!p)return;
+  doRelease(p);
+  pushNews("🚪 Rescisão",p.n+" ("+p.age+" anos) deixa o "+t.n+".");
+  closeSheet();toast(p.n.split(" ").slice(-1)[0]+" dispensado");
+  saveGame();refreshHeader();setTab("squad");
+}
+/* revisão de fim de época: nada acontece sem confirmação */
+let RELSEL=null;
+function releaseReviewSheet(){
+  const t=G.teams[G.my];
+  const recs=(G._relRecs||[]).map(id=>t.players.find(p=>p.id===id)).filter(Boolean);
+  if(!recs.length){G._relRecs=[];return;}
+  if(!RELSEL)RELSEL=new Set(recs.map(p=>p.id));
+  sheet(`<h3>Dispensas de fim de época</h3>
+   <p class="sub" style="margin:6px 0 10px">O diretor desportivo recomenda estas saídas (pouco utilizados, veteranos ou abaixo do nível). Toca para incluir/excluir — <b>nada acontece sem a tua confirmação</b>.</p>
+   ${recs.map(p=>`<div class="list-item" onclick="relToggle(${p.id})" style="opacity:${RELSEL.has(p.id)?1:0.42};cursor:pointer">
+     <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
+     <div class="grow"><b style="font-size:13px">${flag(p)} ${p.n}</b>
+       <div class="sub">${p.age} anos · OVR ${p.ovr} · ${p.apps10||0}/10 jogos recentes</div></div>
+     <span style="font-size:17px">${RELSEL.has(p.id)?"☑":"☐"}</span></div>`).join("")}
+   <button class="btn" onclick="relConfirm()">Confirmar ${RELSEL.size} dispensa${RELSEL.size===1?"":"s"}</button>
+   <button class="btn ghost" onclick="RELSEL=null;G._relRecs=[];closeSheet();saveGame()">Manter todos</button>`);
+}
+function relToggle(id){if(RELSEL.has(id))RELSEL.delete(id);else RELSEL.add(id);releaseReviewSheet();}
+function relConfirm(){
+  const t=G.teams[G.my];
+  const out=t.players.filter(p=>RELSEL.has(p.id));
+  out.forEach(p=>doRelease(p));
+  if(out.length)pushNews("🚪 Dispensas confirmadas",out.map(p=>p.n).join(", ")+" deixa"+(out.length>1?"m":"")+" o clube. Os elegíveis ficam na bolsa de Livres.");
+  RELSEL=null;G._relRecs=[];
+  closeSheet();toast(out.length+" dispensa"+(out.length===1?"":"s")+" confirmada"+(out.length===1?"":"s"));
+  saveGame();refreshHeader();setTab("squad");
+}
+/* promoção com plantel cheio: escolher quem sai */
+function promoteSwapSheet(aid){
+  const t=G.teams[G.my];
+  const ap=t.academy.players.find(x=>x.id===aid);
+  if(!ap)return;
+  sheet(`<h3>Plantel cheio (21/21)</h3>
+   <p class="sub" style="margin:6px 0 10px">Para promover <b>${ap.n}</b> (${ap.age} anos · OVR ${ap.ovr}) tens de dispensar um jogador. Escolhe quem sai:</p>
+   ${[...t.players].sort((a,b)=>a.ovr-b.ovr).map(p=>`<div class="list-item" onclick="promoteSwap(${aid},${p.id})" style="cursor:pointer">
+     <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
+     <div class="grow"><b style="font-size:13px">${flag(p)} ${p.n}</b><div class="sub">${p.age} anos · OVR ${p.ovr}</div></div>
+     <span class="sub" style="color:var(--red)">Dispensar →</span></div>`).join("")}
+   <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
+}
+function promoteSwap(aid,pid){
+  const t=G.teams[G.my],p=t.players.find(x=>x.id===pid);
+  if(!p)return;
+  doRelease(p);
+  pushNews("🚪 Rescisão",p.n+" deixa o clube para abrir vaga no plantel.");
+  closeSheet();
+  promotePlayer(aid);
 }
 </script>
