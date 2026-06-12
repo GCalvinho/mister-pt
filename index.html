@@ -1263,16 +1263,12 @@ function renderPlay(c){
   const mdToday=G.cal[G.calIdx];
   if(mdToday.cup&&!mdToday.fxc)mdToday.fxc=cupPairings(G.cups[mdToday.cup]);
   const past=[],future=[];
-  let othersToday="";
   for(let i=0;i<G.cal.length;i++){
     const md=G.cal[i];
     const isToday=i===G.calIdx;
     const fxs=(md.cup?md.fxc:md.fx)||[];
     const f=fxs.find(x=>x.h===G.my||x.a===G.my);
     const compN=md.cup?compName(md.cup):"Jornada "+md.rd;
-    if(isToday)othersToday=fxs.filter(x=>x!==f).map(x=>`<div class="list-item">
-      <div class="tn grow">${crest(G.teams[x.h],1)} ${G.teams[x.h].s} <span class="sub">vs</span> ${G.teams[x.a].s} ${crest(G.teams[x.a],1)}</div>
-      ${x.res?`<b class="mono" style="font-size:13px">${x.res[0]}–${x.res[1]}</b>`:""}</div>`).join("");
     if(!f){
       if(isToday)future.push(`<div class="card" style="border-color:var(--amber)">
         <div class="dash-t">${compN} · ${dstr(md.date)}</div>
@@ -1313,8 +1309,7 @@ function renderPlay(c){
             :`<span class="sub mono" style="font-size:9.5px;letter-spacing:.1em;background:var(--card2);padding:5px 9px;border-radius:7px;flex-shrink:0">POR JOGAR</span>`}
         </div>
         ${isToday?`${ok2?"":'<p style="color:var(--red);font-size:12.5px;margin-top:8px">⚠ Onze incompleto — vai à Tática.</p>'}
-        <button class="btn ghost" style="margin-top:10px" ${ok2?"":"disabled"} onclick="kickoff(0)">⏩ Simular jornada</button>
-        ${othersToday?`<h3 onclick="toggleOthers()" style="cursor:pointer;margin:12px 0 ${othersOpen?8:0}px;font-size:13.5px">${othersOpen?"▾":"▸"} Outros jogos do dia</h3><div style="display:${othersOpen?"block":"none"}">${othersToday}</div>`:""}`:""}
+        <button class="btn ghost" style="margin-top:10px" ${ok2?"":"disabled"} onclick="kickoff(0)">⏩ Simular jornada</button>`:""}
       </div>`);
     }
   }
