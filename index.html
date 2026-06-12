@@ -64,7 +64,14 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 /* ===== Navegação inferior ===== */
 .tabbar{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + var(--sab));padding-bottom:var(--sab);display:flex;background:#0a2017;border-top:1px solid var(--line);z-index:40}
 .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:9px;font-weight:600;position:relative}
-.tabbar button .ic{font-size:19px;line-height:1}
+.tabbar button .ic{font-size:15px;line-height:1}
+.dash-t{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;letter-spacing:.16em;color:var(--amber);font-weight:800;margin-bottom:10px;text-transform:uppercase}
+.stat4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stat4 .bx{background:var(--card2);border-radius:10px;padding:10px 4px;text-align:center}
+.stat4 .bx b{display:block;font-size:18px;color:var(--amber);font-family:ui-monospace,monospace}
+.stat4 .bx span{font-size:9px;color:var(--muted);letter-spacing:.1em}
+.fb{display:inline-flex;width:21px;height:21px;border-radius:6px;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;margin-left:4px}
+.fb.V{background:rgba(61,220,132,.16);color:var(--ok)}.fb.E{background:rgba(255,200,60,.16);color:var(--amber)}.fb.D{background:rgba(255,90,90,.16);color:var(--red)}
 .tabbar button.on{color:var(--amber)}
 .tabbar button.on::before{content:"";position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--amber);border-radius:0 0 2px 2px}
 
@@ -239,6 +246,7 @@ table.tbl .tn{max-width:140px}
   </div>
   <div class="content" id="tab-content"></div>
   <div class="tabbar">
+    <button data-tab="geral" class="on"><span class="ic">🏠</span>Geral</button>
     <button data-tab="squad"><span class="ic">👥</span>Plantel</button>
     <button data-tab="tactics"><span class="ic">📋</span>Tática</button>
     <button data-tab="play" class="on"><span class="ic">⚽</span>Jogos</button>
@@ -712,6 +720,7 @@ function setTab(t){
   else if(t==="tactics")renderTactics(c);
   else if(t==="play")renderPlay(c);
   else if(t==="league")renderLeague(c);
+  else if(t==="geral")renderGeral(c);
   else if(t==="clube")renderClube(c);
   else renderMarket(c);
 }
@@ -1283,7 +1292,7 @@ function afterMyMatch(){ // após jogo interativo
   const md=G.cal[G.calIdx];
   applyResult(M.fx,M,md);
   finishDay(md,M.fx);
-  show("scr-main");refreshHeader();setTab("play");
+  show("scr-main");refreshHeader();setTab("geral");
 }
 function applyResult(fx,r,md){
   fx.res=[r.gh,r.ga];
@@ -1947,5 +1956,82 @@ function seqIntercept(home,cur,target,Dout,chain,TT,TD,fromCut,counter){
     "O passe sai telegrafado e "+(ix?ix.p.n:"a defesa do "+TD.s)+" intercepta com facilidade."]),M.min);
   M.mom={side:home?0:1,kind:"cut",min:M.min};
   if(!counter&&Math.random()<0.22&&M.min<89)runAttack(home?0:1,true);
+}
+</script>
+<script>
+/* ============ TAB GERAL: homepage do treinador ============ */
+function renderGeral(c){
+  const t=G.teams[G.my],T=G.tables[G.my]||{p:0,w:0,e:0,l:0,pts:0,gm:0,gs:0};
+  // posição na tabela da divisão
+  const divT=G.teams.filter(x=>x.div===t.div);
+  const sorted=[...divT].sort((a,b)=>(G.tables[b.i].pts-G.tables[a.i].pts)||((G.tables[b.i].gm-G.tables[b.i].gs)-(G.tables[a.i].gm-G.tables[a.i].gs)));
+  const pos=sorted.findIndex(x=>x.i===G.my)+1;
+  // forma: últimos 5 resultados (todas as provas)
+  const formArr=[];
+  for(let i=G.calIdx;i>=0&&formArr.length<5;i--){
+    const md=G.cal[i];if(!md)continue;
+    const f=((md.fx||[]).concat(md.fxc||[])).find(x=>(x.h===G.my||x.a===G.my)&&x.res);
+    if(f){const me=f.h===G.my?f.res[0]:f.res[1],op=f.h===G.my?f.res[1]:f.res[0];
+      formArr.unshift(me>op?"V":me===op?"E":"D");}
+  }
+  // próximo jogo (procura no calendário a partir de hoje)
+  let nx=null,nxMd=null,today=false;
+  for(let i=G.calIdx;i<G.cal.length;i++){
+    const md=G.cal[i];if(!md)break;
+    if(md.cup&&!md.fxc&&i===G.calIdx)md.fxc=cupPairings(G.cups[md.cup]);
+    const f=((md.cup?md.fxc:md.fx)||[]).find(x=>(x.h===G.my||x.a===G.my)&&!x.res);
+    if(f){nx=f;nxMd=md;today=(i===G.calIdx);break;}
+    if(md.cup&&i>G.calIdx)break; // taça por sortear: para a busca
+  }
+  let nextHTML;
+  if(!G.cal[G.calIdx]){
+    nextHTML=`<div class="card"><div class="dash-t">Fim de época</div>
+     <p style="font-size:14px;margin-bottom:8px">A época ${G.season}/${(G.season+1)%100} chegou ao fim!</p>
+     <button class="btn" onclick="newSeason()">Começar época ${G.season+1}/${(G.season+2)%100}</button></div>`;
+  } else if(nx){
+    const h2=G.teams[nx.h],a2=G.teams[nx.a],home=nx.h===G.my;
+    const ok2=xiValid();
+    const compN=nxMd.cup?compName(nxMd.cup):"Jornada "+nxMd.rd;
+    nextHTML=`<div class="card"><div class="dash-t">Próximo jogo</div>
+     <div class="row" style="justify-content:space-between;align-items:center;gap:10px">
+       <div class="grow">
+         <div class="tn" style="font-size:15px;white-space:normal">${crest(home?h2:a2,1)} <b>${home?h2.n:a2.n}</b> <span class="sub">vs</span> <b>${home?a2.n:h2.n}</b></div>
+         <div class="sub mono" style="margin-top:5px;letter-spacing:.08em">${home?"CASA":"FORA"} · ${compN} · ${dstr(nxMd.date)}</div>
+       </div>
+       ${today?`<button class="btn" style="width:auto;padding:11px 16px;flex-shrink:0" ${ok2?"":"disabled"} onclick="kickoff(1)">JOGAR ▶</button>`
+              :`<button class="btn ghost" style="width:auto;padding:11px 14px;flex-shrink:0" onclick="kickoff(0)">⏩ Avançar</button>`}
+     </div>
+     ${today&&!ok2?`<p style="color:var(--red);font-size:12.5px;margin-top:8px">⚠ O teu onze não está completo — vai à Tática.</p>`:""}
+     ${today?`<button class="btn ghost" style="margin-top:10px" ${ok2?"":"disabled"} onclick="kickoff(0)">⏩ Simular jornada</button>`:""}</div>`;
+  } else {
+    nextHTML=`<div class="card"><div class="dash-t">Próximo jogo</div>
+     <p class="sub" style="margin-bottom:8px">Sem jogo agendado — avança o calendário.</p>
+     <button class="btn ghost" onclick="kickoff(0)">⏩ Avançar dia</button></div>`;
+  }
+  const baixas=t.players.filter(p=>p.susp||p.sta<55);
+  c.innerHTML=nextHTML+`
+   <div class="card"><div class="dash-t">Época</div>
+    <div class="stat4">
+      <div class="bx"><b>${pos}º</b><span>POS</span></div>
+      <div class="bx"><b>${T.pts}</b><span>PTS</span></div>
+      <div class="bx"><b>${T.w}</b><span>V</span></div>
+      <div class="bx"><b>${T.l}</b><span>D</span></div>
+    </div>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <span class="sub mono" style="letter-spacing:.14em;font-size:11px">FORMA</span>
+      <div>${formArr.length?formArr.map(r=>`<span class="fb ${r}">${r}</span>`).join(""):'<span class="sub">—</span>'}</div>
+    </div>
+   </div>
+   <div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><div class="dash-t">Mensagens</div>
+     <span class="sub" style="cursor:pointer" onclick="showInbox()">Ver todas ›</span></div>
+    ${G.inbox.length?G.inbox.slice(0,3).map(m=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)" onclick="showInbox()">
+      <div style="font-size:13.5px">${m.t}</div><div class="sub mono" style="font-size:10.5px;margin-top:2px">${dstr(m.d)}</div></div>`).join(""):'<p class="sub">Sem mensagens.</p>'}
+   </div>
+   <div class="card"><div class="dash-t">Baixas</div>
+    ${baixas.length?baixas.map(p=>`<div class="row" style="justify-content:space-between;padding:5px 0">
+      <span style="font-size:13.5px">${flag(p)} ${p.n}</span>
+      ${p.susp?'<span style="font-size:12px;color:var(--red)">🟥 Suspenso</span>':'<span style="font-size:12px;color:var(--amber)">🔋 Cansado '+Math.round(p.sta)+'%</span>'}</div>`).join("")
+     :'<p style="font-size:14px">Nenhuma baixa ✅</p>'}
+   </div>`;
 }
 </script>
