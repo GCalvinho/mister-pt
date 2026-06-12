@@ -534,6 +534,8 @@ function value(p){
   const af=p.age<=21?1.5:p.age<=24?1.3:p.age<=28?1.0:p.age<=31?0.6:0.3;
   return Math.max(25,Math.round(Math.pow(Math.max(p.ovr-40,5),2.15)*af*1.45))*1000;
 }
+const wage=p=>Math.max(20000,Math.round(value(p)*0.16/5000)*5000);
+const teamWages=t=>t.players.reduce((s,p)=>s+wage(p),0);
 const fmtM=v=>v>=1e6?(v/1e6).toFixed(v>=1e7?0:1).replace(".",",")+" M€":Math.round(v/1e3)+" mil €";
 function potStars(p){
   if(!p.pot||p.pot<0.02)return '<span class="sub" style="font-size:10px">—</span>';
@@ -705,6 +707,7 @@ function startCareer(ti){
   const teams=buildSquads().map(t=>({i:t.i,n:t.n,s:t.s,c:t.c,st:t.st,div:t.d,b:t.b||0,base:t.base,budget:Math.round((t.bud||0)*1e6),players:t.players,stadium:t.stadium,academy:t.academy}));
   G={v:1,slot,mgr,my:ti,season:2025,teams,inbox:[],offersIn:[],windowOpen:true,tactic:null,matchesPlayed:0,history:[],revenue:{season:{tickets:0,ads:0,total:0},lastAdMonth:-1}};
   buildSeason(2025);
+  tvMoney(null);
   autoTactic();
   pushNews("Bem-vindo, "+mgr+"!","Foste apresentado como novo treinador do "+teams[ti].n+". A época 2025/26 está prestes a começar. Define a tua tática e boa sorte, Míster.");
   saveGame();openMain();
@@ -801,6 +804,7 @@ function playerSheet(id){
    <div class="kv"><span>Outros roles</span><span>${altRoles}</span></div>
    ${p.age<=23?`<div class="kv"><span>Potencial</span><b>${mine?potStars(p):'<span class="sub">?</span>'}</b></div>`:""}
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
+   <div class="kv"><span>Salário</span><b>${fmtM(wage(p))}<span class="sub">/época</span></b></div>
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
    ${isFA?`<button class="btn" onclick="signFree(${p.id})">Contratar a custo zero</button>`:
      inAcad?(mine?`<button class="btn" onclick="promotePlayer(${p.id})">↑ Promover ao plantel</button>`:""):
@@ -1413,12 +1417,26 @@ function finishDay(md,mineFx){
   if(G.revenue.lastAdMonth!==curMonth){
     G.revenue.lastAdMonth=curMonth;
     G.teams.forEach(t=>{if(!t.b&&t.stadium){const ar=adRevenue(t);t.budget+=ar;if(t.i===G.my){G.revenue.season.ads+=ar;G.revenue.season.total+=ar;}}});
+    G.teams.forEach(t=>{if(!t.b){const w=Math.round(teamWages(t)/12);t.budget-=w;
+      if(t.i===G.my){G.revenue.season.wages=(G.revenue.season.wages||0)+w;G.revenue.season.total-=w;}}});
   }
   marketAI();
   G.calIdx++;
   G.windowOpen=isWindowOpen();
   saveGame();refreshHeader();
   if(!M||!M.interactive||M.done&&document.querySelector("#scr-main.on"))setTab("geral");
+}
+function tvMoney(posOf){
+  G.teams.forEach(t=>{
+    if(t.b)return;
+    const pos=posOf?clamp(posOf[t.i]??8,0,17):8;
+    const amt=t.div===1?3500000+(17-pos)*180000:1000000+(17-pos)*50000;
+    t.budget+=amt;
+    if(t.i===G.my){
+      G.revenue.season.tv=(G.revenue.season.tv||0)+amt;G.revenue.season.total+=amt;
+      pushNews("📺 Direitos televisivos","O clube recebe "+fmtM(amt)+" de direitos de transmissão para a nova época"+(posOf?" (reflete a classificação anterior).":"."));
+    }
+  });
 }
 function isWindowOpen(){
   const md=G.cal[G.calIdx];if(!md)return true;
@@ -1431,6 +1449,8 @@ function historyHTML(){
 
 /* =================== FIM DE ÉPOCA =================== */
 function newSeason(){
+  const posOf={};[1,2].forEach(d=>{const ids=G.teams.filter(x=>x.div===d).map(x=>x.i)
+    .sort((a,b)=>((G.tables[b]||{}).pts||0)-((G.tables[a]||{}).pts||0));ids.forEach((id,ix)=>posOf[id]=ix);});
   // classificação final
   const order=div=>G.teams.filter(t=>t.div===div).map(t=>t.i)
     .sort((a,b)=>G.tables[b].pts-G.tables[a].pts||(G.tables[b].gm-G.tables[b].gs)-(G.tables[a].gm-G.tables[a].gs)||G.tables[b].gm-G.tables[a].gm);
@@ -1490,7 +1510,7 @@ function newSeason(){
   });
   G.offersIn=(G.offersIn||[]).filter(o=>!o.dead).slice(-10);
   G.season++;buildSeason(G.season);G.matchesPlayed=0;G.windowOpen=true;
-  if(!G.revenue||G.revenue.season)G.revenue={season:{tickets:0,ads:0,total:0},lastAdMonth:-1};
+  G.revenue={season:{tickets:0,ads:0,total:0},lastAdMonth:-1};
   // obras concluídas
   G.teams.forEach(t=>{
     if(t.stadium&&t.stadium.building&&t.stadium.building.done<=G.season){
@@ -1506,6 +1526,7 @@ function newSeason(){
   G.freeAgents=newFA.filter(p=>p.ovr>=48).sort((a,b)=>(b.ovr+b.pot*40)-(a.ovr+a.pot*40)).slice(0,80);
   if(G.freeAgents.length){const best=G.freeAgents[0];
     pushNews("🆓 Bolsa de Jogadores Livres","Há "+G.freeAgents.length+" jogadores livres (custo zero) no Mercado durante esta época. Destaque: "+best.n+" ("+best.ovr+", "+best.age+" anos). Quem não for contratado desaparece no fim da época.");}
+  tvMoney(posOf);
   saveGame();refreshHeader();setTab("geral");
   if(G._relRecs&&G._relRecs.length)setTimeout(releaseReviewSheet,450);
 }
@@ -1634,13 +1655,14 @@ function bidFlow(pid){
    <div class="sub" style="margin:10px 0 4px">Montante da proposta</div>
    <input type="range" id="bid-amt" min="${Math.round(v*0.5)}" max="${Math.round(v*2.2)}" value="${v}" step="${Math.max(1000,Math.round(v/50))}" oninput="$('bid-val').textContent=fmtM(+this.value)">
    <div style="text-align:center;font-weight:900;color:var(--amber);font-size:18px;margin:6px 0" id="bid-val">${fmtM(v)}</div>
+   <div class="kv" style="margin-top:8px"><span>Salário do jogador</span><b>${fmtM(wage(p))}<span class="sub">/época</span></b></div>
    <button class="btn" onclick="sendBid(${pid})">Enviar proposta</button>`),180);
 }
 function sendBid(pid){
   const amt=+$("bid-amt").value;
   const p=G.teams.flatMap(t=>t.players).find(x=>x.id===pid);
   const t=G.teams[G.my],seller=G.teams[p.t];
-  if(amt>t.budget){toast("Orçamento insuficiente");return}
+  if(amt+wage(p)>t.budget){toast("Orçamento insuficiente para taxa + salário ("+fmtM(wage(p))+"/época)");return}
   const v=value(p);
   // prob de aceitação: rácio da proposta + importância do jogador para o vendedor
   const key=p.ovr-seller.base; // quão acima da base do clube
@@ -1663,6 +1685,7 @@ function signFree(pid){
   if(t.players.length>=21){toast("Plantel no limite (21/21) — dispensa alguém primeiro");return;}
   const p=(G.freeAgents||[]).find(x=>x.id===pid);
   if(!p){toast("Já não está disponível");return;}
+  if(wage(p)>t.budget){toast("Não consegues pagar o salário: "+fmtM(wage(p))+"/época");return;}
   G.freeAgents=G.freeAgents.filter(x=>x.id!==pid);
   p.t=G.my;p.hist10=[];p.apps10=0;p.sta=100;p.listed=0;
   t.players.push(p);
@@ -1910,7 +1933,9 @@ function renderClube(c){
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px">Receitas esta época</div>
       <div class="kv" style="padding:4px 0"><span style="font-size:13px">🎟 Bilheteira</span><b style="color:var(--ok)">${fmtM(rev.season.tickets)}</b></div>
       <div class="kv" style="padding:4px 0"><span style="font-size:13px">📡 Publicidade</span><b style="color:var(--ok)">${fmtM(rev.season.ads)}</b></div>
-      <div class="kv" style="padding:4px 0;border-top:1px solid var(--line);margin-top:4px"><span style="font-size:13px;font-weight:800">Total</span><b style="color:var(--amber);font-size:16px">${fmtM(rev.season.total)}</b></div>
+      <div class="kv" style="padding:4px 0"><span style="font-size:13px">📺 Direitos TV</span><b style="color:var(--ok)">${fmtM(rev.season.tv||0)}</b></div>
+      <div class="kv" style="padding:4px 0"><span style="font-size:13px">💸 Salários (${fmtM(teamWages(t))}/época)</span><b style="color:var(--red)">−${fmtM(rev.season.wages||0)}</b></div>
+      <div class="kv" style="padding:4px 0;border-top:1px solid var(--line);margin-top:4px"><span style="font-size:13px;font-weight:800">Resultado líquido</span><b style="color:${rev.season.total>=0?"var(--amber)":"var(--red)"};font-size:16px">${fmtM(rev.season.total)}</b></div>
     </div>
     ${stad.building?'<p class="sub" style="text-align:center">🚧 Expansão em curso — conclusão em '+fmtSeason(stad.building.done)+'</p>':
      stad.level<4?`<button class="btn ghost" onclick="upgradeStadium()">Expandir → ${Math.round(stad.cap*STAD_MULTS[stad.level-1]).toLocaleString("pt-PT")} lugares · ${fmtM(stadUpgradeCost(t))}</button>`:
@@ -2158,6 +2183,7 @@ function askRelease(id){
   sheet(`<h3>Dispensar ${p.n}?</h3>
    <div class="kv" style="margin-top:10px"><span>Idade / Overall</span><b>${p.age} anos · ${p.ovr}</b></div>
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
+   <div class="kv"><span>Salário</span><b>${fmtM(wage(p))}<span class="sub">/época</span></b></div>
    <p class="sub" style="margin:10px 0 4px">A rescisão é gratuita mas não recebes nada — se queres encaixe, coloca-o antes na lista de transferências. ${p.age<34&&p.ovr>=48?"Vai para a bolsa de Jogadores Livres (outro clube pode contratá-lo a custo zero).":"Termina a carreira."}</p>
    <button class="btn" style="background:var(--red)" onclick="confirmRelease(${id})">Confirmar dispensa</button>
    <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
