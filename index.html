@@ -1544,19 +1544,21 @@ function scorersHTML(){
 }
 
 /* =================== MERCADO =================== */
-let mktPos="",mktQ="",mktRole="",mktOvr=0,mktAge=0,mktPot=0,mktFree=0;
+let mktPos="",mktQ="",mktRole="",mktAge=0,mktFree=0,mktPage=0;
 const GROUP_ROLES={GR:["GR"],D:["DL","CEN"],M:["MDF","B2B","MCR"],A:["EXT","PL"]};
 function potN(p){return !p.pot||p.pot<0.02?0:p.pot>=0.22?5:p.pot>=0.15?4:p.pot>=0.09?3:p.pot>=0.05?2:1}
 function renderMarket(c){
   const t=G.teams[G.my];
   const offers=G.offersIn.filter(o=>!o.dead);
   let pool=G.teams.flatMap(x=>x.i===G.my?[]:x.players);
-  if(mktFree===1)pool=[...(G.freeAgents||[])];
-  else if(mktFree===0)pool=pool.concat(G.freeAgents||[]);
-  const all=pool
-    .filter(p=>(!mktPos||posGroup(p.pos)===mktPos)&&(!mktRole||p.nr===mktRole)&&(!mktQ||p.n.toLowerCase().includes(mktQ))
-      &&(!mktOvr||p.ovr>=mktOvr)&&(!mktAge||p.age<=mktAge)&&(!mktPot||potN(p)>=mktPot))
-    .sort((a,b)=>b.ovr-a.ovr).slice(0,50);
+  if(mktFree)pool=[...(G.freeAgents||[])];
+  else pool=pool.concat(G.freeAgents||[]);
+  const filtered=pool
+    .filter(p=>(!mktPos||posGroup(p.pos)===mktPos)&&(!mktRole||p.nr===mktRole)&&(!mktQ||p.n.toLowerCase().includes(mktQ))&&(!mktAge||p.age<=mktAge))
+    .sort((a,b)=>b.ovr-a.ovr);
+  const PER=15,pages=Math.max(1,Math.ceil(filtered.length/PER));
+  mktPage=clamp(mktPage,0,pages-1);
+  const all=filtered.slice(mktPage*PER,(mktPage+1)*PER);
   c.innerHTML=`
    <div class="card">
     <div class="row" style="justify-content:space-between;align-items:center">
@@ -1575,22 +1577,19 @@ function renderMarket(c){
         <button class="btn sm ghost" onclick="rejectOffer(${i})">Recusar</button></div></div>`}).join("")}</div>`:""}
    </div>
    <div class="card"><h3>🔎 Procurar jogadores</h3>
-    <input placeholder="Nome do jogador..." value="${mktQ}" oninput="mktQ=this.value.toLowerCase()" onchange="setTab('market')" style="width:100%;margin-bottom:8px">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-     <select onchange="mktPos=this.value;if(mktPos&&mktRole&&!GROUP_ROLES[mktPos].includes(mktRole))mktRole='';setTab('market')">
+    <input placeholder="Nome do jogador..." value="${mktQ}" oninput="mktQ=this.value.toLowerCase();mktPage=0" onchange="setTab('market')" style="width:100%;margin-bottom:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+     <select onchange="mktPos=this.value;if(mktPos&&mktRole&&!GROUP_ROLES[mktPos].includes(mktRole))mktRole='';mktPage=0;setTab('market')">
        <option value="">Posição</option><option value="GR" ${mktPos==="GR"?"selected":""}>GR</option><option value="D" ${mktPos==="D"?"selected":""}>Defesas</option><option value="M" ${mktPos==="M"?"selected":""}>Médios</option><option value="A" ${mktPos==="A"?"selected":""}>Avançados</option></select>
-     <select onchange="mktRole=this.value;setTab('market')">
+     <select onchange="mktRole=this.value;mktPage=0;setTab('market')">
        <option value="">Role</option>${(mktPos?GROUP_ROLES[mktPos]:["GR","DL","CEN","MDF","B2B","MCR","EXT","PL"]).map(r=>`<option value="${r}" ${mktRole===r?"selected":""}>${ROLE_SHORT[r]||ROLES[r].n}</option>`).join("")}</select>
-     <select onchange="mktOvr=+this.value;setTab('market')">
-       <option value="0">OVR mín.</option>${[55,60,65,70,75].map(v=>`<option value="${v}" ${mktOvr===v?"selected":""}>${v}+</option>`).join("")}</select>
-     <select onchange="mktAge=+this.value;setTab('market')">
+     <select onchange="mktAge=+this.value;mktPage=0;setTab('market')">
        <option value="0">Idade máx.</option>${[19,21,24,28,32].map(v=>`<option value="${v}" ${mktAge===v?"selected":""}>≤ ${v}</option>`).join("")}</select>
-     <select onchange="mktPot=+this.value;setTab('market')">
-       <option value="0">Potencial</option>${[2,3,4,5].map(v=>`<option value="${v}" ${mktPot===v?"selected":""}>${"★".repeat(v)}${v<5?"+":""}</option>`).join("")}</select>
-     <select onchange="mktFree=+this.value;setTab('market')">
-       <option value="0">Livres: todos</option><option value="1" ${mktFree===1?"selected":""}>Só livres</option><option value="2" ${mktFree===2?"selected":""}>Sem livres</option></select>
     </div>
-    <div class="sub" style="margin-bottom:6px">${all.length} resultado${all.length===1?"":"s"}${all.length===50?" (máx.)":""}</div>
+    <label class="row" style="gap:8px;margin-bottom:10px;font-size:13.5px;cursor:pointer">
+      <input type="checkbox" ${mktFree?"checked":""} onchange="mktFree=this.checked?1:0;mktPage=0;setTab('market')" style="width:18px;height:18px;accent-color:var(--amber)">
+      Só jogadores livres</label>
+    <div class="sub" style="margin-bottom:6px">${filtered.length} resultado${filtered.length===1?"":"s"}${pages>1?` · página ${mktPage+1}/${pages}`:""}</div>
     ${all.map(p=>p.t===-1?`<div class="list-item">
       <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
       <div class="grow" onclick="playerSheet(${p.id})"><b style="font-size:13px">${flag(p)} ${p.n} <span style="font-size:9px;background:rgba(61,220,132,.15);color:var(--ok);padding:2px 5px;border-radius:5px;font-weight:800;letter-spacing:.06em">LIVRE</span></b>
@@ -1599,7 +1598,12 @@ function renderMarket(c){
     :`<div class="list-item" onclick="playerSheet(${p.id})">
       <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
       <div class="grow"><b style="font-size:13px">${flag(p)} ${p.n}</b><div class="sub">${G.teams[p.t].s} · ${p.age} anos · ${fmtM(value(p))} · ${potStars(p)}</div></div>
-      <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div></div>`).join("")||`<div class="empty">Sem resultados — ajusta os filtros.</div>`}</div>`;
+      <div class="ovr ${ovrClass(p.ovr)}">${p.ovr}</div></div>`).join("")||`<div class="empty">Sem resultados — ajusta os filtros.</div>`}
+    ${pages>1?`<div class="row" style="justify-content:space-between;margin-top:10px">
+      <button class="btn ghost sm" style="width:auto;padding:8px 14px" ${mktPage===0?"disabled":""} onclick="mktPage--;setTab('market')">‹ Anterior</button>
+      <span class="sub mono">${mktPage+1} / ${pages}</span>
+      <button class="btn ghost sm" style="width:auto;padding:8px 14px" ${mktPage>=pages-1?"disabled":""} onclick="mktPage++;setTab('market')">Seguinte ›</button>
+    </div>`:""}</div>`;
 }
 function bidFlow(pid){
   if(G.teams[G.my].players.length>=21){toast("Plantel no limite (21/21) — dispensa alguém primeiro");return;}
