@@ -1392,7 +1392,7 @@ function finishDay(md,mineFx){
   G.calIdx++;
   G.windowOpen=isWindowOpen();
   saveGame();refreshHeader();
-  if(!M||!M.interactive||M.done&&document.querySelector("#scr-main.on"))setTab("play");
+  if(!M||!M.interactive||M.done&&document.querySelector("#scr-main.on"))setTab("geral");
 }
 function isWindowOpen(){
   const md=G.cal[G.calIdx];if(!md)return true;
@@ -1468,7 +1468,7 @@ function newSeason(){
   G.freeAgents=newFA.filter(p=>p.ovr>=48).sort((a,b)=>(b.ovr+b.pot*40)-(a.ovr+a.pot*40)).slice(0,80);
   if(G.freeAgents.length){const best=G.freeAgents[0];
     pushNews("🆓 Bolsa de Jogadores Livres","Há "+G.freeAgents.length+" jogadores livres (custo zero) no Mercado durante esta época. Destaque: "+best.n+" ("+best.ovr+", "+best.age+" anos). Quem não for contratado desaparece no fim da época.");}
-  saveGame();refreshHeader();setTab("play");
+  saveGame();refreshHeader();setTab("geral");
 }
 </script>
 <script>
