@@ -1322,6 +1322,10 @@ function renderPlay(c){
   c.innerHTML=(past.length?`<div class="card" style="padding:12px 16px"><h3 onclick="togglePast()" style="cursor:pointer;margin:0;font-size:13.5px">${pastOpen?"▾":"▸"} Jogos disputados (${past.length})</h3></div>${pastOpen?past.join(""):""}`:"")+future.join("");
 }
 function kickoff(interactive){
+  // propostas pendentes bloqueiam o avanço do jogo
+  (G.offersIn||[]).forEach(o=>{if(!o.dead&&!G.teams[G.my].players.find(p=>p.id===o.pid))o.dead=1;});
+  const pend=(G.offersIn||[]).filter(o=>!o.dead).length;
+  if(pend){toast("📨 Tens "+pend+" proposta"+(pend>1?"s":"")+" pendente"+(pend>1?"s":"")+" — responde antes de avançar");setTab("market");return;}
   const md=G.cal[G.calIdx];
   if(md.cup&&!md.fxc)md.fxc=cupPairings(G.cups[md.cup]);
   const fxs=md.cup?md.fxc:md.fx;
