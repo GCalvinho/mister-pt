@@ -761,15 +761,15 @@ function renderSquad(c){
   const fitCol=v=>v>75?"var(--ok)":v>50?"var(--amber)":"var(--red)";
   c.innerHTML=`<div class="card" style="padding:14px 10px">
    <table class="sqt"><thead><tr>
-     <th>JOGADOR</th><th class="ctr">POS</th><th class="ctr">OVR</th><th class="rgt">FIT</th><th></th>
+     <th class="ctr">POS</th><th>JOGADOR</th><th class="ctr">OVR</th><th class="rgt">FIT</th><th></th>
    </tr></thead><tbody>
    ${ps.map(p=>`<tr onclick="playerSheet(${p.id})">
+     <td style="text-align:center;width:44px"><div class="posb pos-${posGroup(p.pos)}" style="margin:0 auto">${p.pos}</div></td>
      <td><div class="pn">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
-       <div class="ps">${p.age}a · ${fmtM(value(p))}</div></td>
-     <td style="text-align:center"><span class="ptag" style="color:${posCol[posGroup(p.pos)]}">${p.pos}</span></td>
+       <div class="ps">${ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
      <td class="ovn ${ovCls(p.ovr)}">${p.ovr}</td>
      <td class="fitn" style="color:${fitCol(p.sta)}">${Math.round(p.sta)}%</td>
-     <td style="text-align:center;font-size:12px">${p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
+     <td style="text-align:center;font-size:12px;width:24px">${p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
    </tr>`).join("")}
    </tbody></table></div>`;
 }
