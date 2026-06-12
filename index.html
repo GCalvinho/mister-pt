@@ -262,7 +262,7 @@ table.tbl .tn{max-width:140px}
     <button data-tab="geral" class="on"><span class="ic">🏠</span>Geral</button>
     <button data-tab="squad"><span class="ic">👥</span>Plantel</button>
     <button data-tab="tactics"><span class="ic">📋</span>Tática</button>
-    <button data-tab="play" class="on"><span class="ic">⚽</span>Jogos</button>
+    <button data-tab="play"><span class="ic">📅</span>Calendário</button>
     <button data-tab="league"><span class="ic">🏆</span>Provas</button>
     <button data-tab="market"><span class="ic">💶</span>Mercado</button>
     <button data-tab="clube"><span class="ic">🏟</span>Clube</button>
@@ -1256,48 +1256,69 @@ function myNextFixture(){
 }
 let othersOpen=false;
 function toggleOthers(){othersOpen=!othersOpen;setTab('play')}
+let pastOpen=false;
+function togglePast(){pastOpen=!pastOpen;setTab("play")}
 function renderPlay(c){
-  const md=G.cal[G.calIdx];
-  if(!md){c.innerHTML=`<div class="card"><h3>Fim de época</h3><p style="font-size:14px;margin-bottom:6px">A época ${G.season}/${(G.season+1)%100} chegou ao fim!</p><button class="btn" onclick="newSeason()">Começar época ${G.season+1}/${(G.season+2)%100}</button></div>`+historyHTML();return}
-  // prepara fixtures de taça no dia
-  if(md.cup&&!md.fxc)md.fxc=cupPairings(G.cups[md.cup]);
-  const fxs=md.cup?md.fxc:md.fx;
-  const mine=fxs.find(f=>f.h===G.my||f.a===G.my);
-  const compN=md.cup?compName(md.cup):"Jornada "+md.rd;
-  let mineHTML;
-  if(mine){
-    const h=G.teams[mine.h],a=G.teams[mine.a],home=mine.h===G.my;
-    const ok=xiValid();
-    mineHTML=`<div class="card"><h3>${compN} · ${dstr(md.date)}</h3>
-     <div class="row" style="justify-content:center;gap:14px;margin:8px 0 4px">
-       ${crest(h)}<b style="font-size:15px">${h.s}</b>
-       <span class="mono" style="color:var(--amber);font-weight:800">vs</span>
-       <b style="font-size:15px">${a.s}</b>${crest(a)}</div>
-     <div class="sub" style="text-align:center">${h.st}${home?"":" · fora de casa"}</div>
-     ${ok?"":`<p style="color:var(--red);font-size:12.5px;text-align:center;margin-top:8px">⚠ O teu onze não está completo (11 jogadores + GR). Vai à Tática.</p>`}
-     <button class="btn" ${ok?"":"disabled"} onclick="kickoff(1)">▶ Jogar (relato ao vivo)</button>
-     <button class="btn ghost" ${ok?"":"disabled"} onclick="kickoff(0)">⏩ Simular jornada</button></div>`;
-  } else {
-    mineHTML=`<div class="card"><h3>${compN} · ${dstr(md.date)}</h3>
-     <p class="sub" style="margin-bottom:4px">${md.cup?"A tua equipa "+(G.cups[md.cup].alive.includes(G.my)?"está isenta nesta eliminatória":"não está nesta prova/eliminatória")+".":"Sem jogo da tua equipa."}</p>
-     <button class="btn" onclick="kickoff(0)">⏩ Avançar dia</button></div>`;
-  }
-  const others=fxs.filter(f=>f!==mine).map(f=>`<div class="list-item">
-    <div class="tn grow">${crest(G.teams[f.h],1)} ${G.teams[f.h].s} <span class="sub">vs</span> ${G.teams[f.a].s} ${crest(G.teams[f.a],1)}</div></div>`).join("");
-  c.innerHTML=mineHTML+(others?`<div class="card"><h3 onclick="toggleOthers()" style="cursor:pointer;margin-bottom:${othersOpen?10:0}px">${othersOpen?"▾":"▸"} Outros jogos do dia</h3><div style="display:${othersOpen?"block":"none"}">${others}</div></div>`:"")+upcomingHTML();
-}
-function upcomingHTML(){
-  let h="",n=0;
-  for(let i=G.calIdx+1;i<G.cal.length&&n<5;i++){
+  if(!G.cal[G.calIdx]){c.innerHTML=`<div class="card"><h3>Fim de época</h3><p style="font-size:14px;margin-bottom:6px">A época ${G.season}/${(G.season+1)%100} chegou ao fim!</p><button class="btn" onclick="newSeason()">Começar época ${G.season+1}/${(G.season+2)%100}</button></div>`+historyHTML();return}
+  const mdToday=G.cal[G.calIdx];
+  if(mdToday.cup&&!mdToday.fxc)mdToday.fxc=cupPairings(G.cups[mdToday.cup]);
+  const past=[],future=[];
+  let othersToday="";
+  for(let i=0;i<G.cal.length;i++){
     const md=G.cal[i];
-    const f=(md.fx||md.fxc||[]).find(f=>f.h===G.my||f.a===G.my);
-    if(f||md.cup){
-      const lbl=md.cup?compName(md.cup):"J"+md.rd;
-      const opp=f?(f.h===G.my?G.teams[f.a].n:G.teams[f.h].n+" (fora)"):"(sorteio)";
-      h+=`<div class="kv"><span>${lbl} · ${dstr(md.date).slice(0,11)}</span><b style="font-size:12.5px">${f?opp:"por definir"}</b></div>`;n++;
+    const isToday=i===G.calIdx;
+    const fxs=(md.cup?md.fxc:md.fx)||[];
+    const f=fxs.find(x=>x.h===G.my||x.a===G.my);
+    const compN=md.cup?compName(md.cup):"Jornada "+md.rd;
+    if(isToday)othersToday=fxs.filter(x=>x!==f).map(x=>`<div class="list-item">
+      <div class="tn grow">${crest(G.teams[x.h],1)} ${G.teams[x.h].s} <span class="sub">vs</span> ${G.teams[x.a].s} ${crest(G.teams[x.a],1)}</div>
+      ${x.res?`<b class="mono" style="font-size:13px">${x.res[0]}–${x.res[1]}</b>`:""}</div>`).join("");
+    if(!f){
+      if(isToday)future.push(`<div class="card" style="border-color:var(--amber)">
+        <div class="dash-t">${compN} · ${dstr(md.date)}</div>
+        <p class="sub" style="margin-bottom:10px">${md.cup?"Estás isento (ou fora) desta eliminatória.":"Sem jogo da tua equipa."}</p>
+        <button class="btn ghost" onclick="kickoff(0)">⏩ Avançar dia</button></div>`);
+      continue;
+    }
+    const home=f.h===G.my,opp=G.teams[home?f.a:f.h];
+    const title=`${home?G.teams[G.my].n:opp.n} <span class="sub" style="font-weight:600">vs</span> ${home?opp.n:G.teams[G.my].n}`;
+    if(f.res){
+      const me=home?f.res[0]:f.res[1],op=home?f.res[1]:f.res[0];
+      let lbl,col;
+      if(md.cup&&me===op){lbl=f.win===G.my?"VITÓRIA G.P.":"DERROTA G.P.";col=f.win===G.my?"var(--ok)":"var(--red)";}
+      else if(me>op){lbl="VITÓRIA";col="var(--ok)";}
+      else if(me===op){lbl="EMPATE";col="var(--amber)";}
+      else{lbl="DERROTA";col="var(--red)";}
+      past.push(`<div class="card" style="padding:12px 16px">
+        <div class="row" style="justify-content:space-between;align-items:center;gap:10px">
+          <div class="grow">
+            <div class="sub mono" style="font-size:10px;letter-spacing:.12em;margin-bottom:3px">${compN.toUpperCase()}</div>
+            <div style="font-size:14.5px;font-weight:700">${title}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div class="mono" style="font-size:19px;font-weight:800;color:var(--amber)">${f.res[0]}–${f.res[1]}</div>
+            <div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:${col}">${lbl}</div>
+          </div>
+        </div></div>`);
+    } else {
+      const ok2=xiValid();
+      future.push(`<div class="card" style="${isToday?"border-color:var(--amber);box-shadow:0 0 0 1px var(--amber);":""}padding:14px 16px">
+        <div class="row" style="justify-content:space-between;align-items:center;gap:10px">
+          <div class="grow">
+            <div class="sub mono" style="font-size:10px;letter-spacing:.12em;margin-bottom:3px">${compN.toUpperCase()} · ${dstr(md.date)}</div>
+            <div style="font-size:15px;font-weight:700">${title}</div>
+            <div class="sub" style="margin-top:3px">${home?"🏠 CASA":"✈️ FORA"}</div>
+          </div>
+          ${isToday?`<button class="btn" style="width:auto;padding:11px 16px;flex-shrink:0" ${ok2?"":"disabled"} onclick="kickoff(1)">JOGAR ▶</button>`
+            :`<span class="sub mono" style="font-size:9.5px;letter-spacing:.1em;background:var(--card2);padding:5px 9px;border-radius:7px;flex-shrink:0">POR JOGAR</span>`}
+        </div>
+        ${isToday?`${ok2?"":'<p style="color:var(--red);font-size:12.5px;margin-top:8px">⚠ Onze incompleto — vai à Tática.</p>'}
+        <button class="btn ghost" style="margin-top:10px" ${ok2?"":"disabled"} onclick="kickoff(0)">⏩ Simular jornada</button>
+        ${othersToday?`<h3 onclick="toggleOthers()" style="cursor:pointer;margin:12px 0 ${othersOpen?8:0}px;font-size:13.5px">${othersOpen?"▾":"▸"} Outros jogos do dia</h3><div style="display:${othersOpen?"block":"none"}">${othersToday}</div>`:""}`:""}
+      </div>`);
     }
   }
-  return h?`<div class="card"><h3>Próximos jogos</h3>${h}</div>`:"";
+  c.innerHTML=(past.length?`<div class="card" style="padding:12px 16px"><h3 onclick="togglePast()" style="cursor:pointer;margin:0;font-size:13.5px">${pastOpen?"▾":"▸"} Jogos disputados (${past.length})</h3></div>${pastOpen?past.join(""):""}`:"")+future.join("");
 }
 function kickoff(interactive){
   const md=G.cal[G.calIdx];
