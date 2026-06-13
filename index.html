@@ -1452,9 +1452,7 @@ function renderLiveTact(){
   const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!out.has(p.id)&&!p.susp&&!p.inj)
     .sort((a,b)=>(RO[a.nr]??2)-(RO[b.nr]??2)||b.ovr-a.ovr);
   $("lt-bench").innerHTML=`<div class="sub" style="margin:12px 0 6px">Banco · ${M.subs[mine.team.i]} substituições restantes (toca num titular no campo para substituir)</div>
-   <div class="bench">${bench.map(p=>`<div class="bchip" data-pid="${p.id}">
-     <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b>${p.n.split(" ").slice(-1)[0]}</b>
-     <div class="sub">${ROLE_SHORT[p.nr]||p.nr}</div></div>`).join("")||'<div class="empty" style="padding:10px">Sem suplentes disponíveis.</div>'}</div>`;
+   <div class="bench">${bench.map(p=>benchHTML(p)).join("")||'<div class="empty" style="padding:10px">Sem suplentes disponíveis.</div>'}</div>`;
 }
 function renderLivePitch(){
   const t=G.teams[G.my],T=liveEdit;
