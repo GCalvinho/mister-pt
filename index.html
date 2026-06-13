@@ -48,7 +48,7 @@ input,select{font:inherit;color:var(--chalk);background:var(--card2);border:1px 
 select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238FAE9C' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 
 /* ===== Estrutura de ecrãs ===== */
-.screen{display:none;position:fixed;inset:0;height:100%;height:100dvh;flex-direction:column;background:var(--pitch)}
+.screen{display:none;position:fixed;inset:0;flex-direction:column;background:var(--pitch)}
 .screen.on{display:flex}
 .appbar{padding:calc(var(--sat) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d2a1f,var(--pitch))}
 .appbar .club-strip{width:5px;align-self:stretch;border-radius:3px}
@@ -887,6 +887,16 @@ function renderTactics(c){
   const t=G.teams[G.my],T=G.tactic,inGrid=new Set(Object.values(T.grid).map(g=>g&&g.pid).filter(x=>x!=null));
   const benchPs=[...t.players].filter(p=>!inGrid.has(p.id)).sort((a,b)=>POSORD[a.pos]-POSORD[b.pos]||b.ovr-a.ovr);
   c.innerHTML=`
+   <div class="card" style="margin-bottom:10px">
+     <div class="sub" style="margin-bottom:4px">Mentalidade</div>
+     <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${T.ment===i?"on":""}" onclick="instrSet('ment',${i})">${m}</button>`).join("")}</div>
+     <div class="sub" style="margin:8px 0 4px">Pressão</div>
+     <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${T.press===i?"on":""}" onclick="instrSet('press',${i})">${m}</button>`).join("")}</div>
+     <div class="sub" style="margin:8px 0 4px">Variantes</div>
+     <div class="seg"><button class="${T.contra?"on":""}" onclick="instrSet('contra',${T.contra?0:1})">Contra-ataque</button>
+       <button class="${T.posse?"on":""}" onclick="instrSet('posse',${T.posse?0:1})">Posse curta</button></div>
+     <button class="btn ghost" style="margin-top:10px" onclick="emptyAll()">Esvaziar onze (manter formação)</button>
+   </div>
    <div class="pitch-wrap"><div class="pitch" id="pitch">
      <svg class="markings" viewBox="0 0 100 132" preserveAspectRatio="none" width="100%" height="100%">
       <rect x="2" y="2" width="96" height="128" fill="none" stroke="#cfe2d6" stroke-width=".6"/>
@@ -900,16 +910,9 @@ function renderTactics(c){
        (()=>{let h="";for(let r=5;r>=1;r--)for(let col=0;col<5;col++)h+=cellHTML(r,col,T,t);h+=cellHTML(0,2,T,t,"gkcell");return h})()
      }</div>
    </div></div>
-   <div class="sub" style="text-align:center;margin:6px 0 2px">Arrasta jogadores para as posições · ${Object.values(T.grid).filter(g=>g&&g.pid!=null).length}/11</div>
+   <div class="sub" style="text-align:center;margin:8px 0 2px">Arrasta jogadores para as posições · ${Object.values(T.grid).filter(g=>g&&g.pid!=null).length}/11</div>
    <div class="bench" id="bench">${benchPs.map(p=>benchHTML(p)).join("")}</div>
-   <div class="card"><h3>Instruções da tática</h3>
-     <div class="kv"><span>Mentalidade</span><b>${["Defensiva","Equilibrada","Ofensiva"][T.ment]}</b></div>
-     <div class="kv"><span>Pressão</span><b>${["Baixa","Média","Alta"][T.press]}</b></div>
-     <div class="kv"><span>Variantes</span><b>${[T.contra?"Contra-ataque":"",T.posse?"Posse curta":""].filter(Boolean).join(" · ")||"—"}</b></div>
-     <button class="btn ghost" onclick="instrSheet()">⚙ Ajustar instruções</button>
-     <button class="btn ghost" onclick="emptyAll()">Esvaziar onze (manter formação)</button>
-     <p class="sub" style="margin-top:8px;line-height:1.5">💡 Arrasta as bolinhas vazias para desenhar a formação · toca numa zona livre para criar uma posição · arrasta uma bolinha para fora do campo para a remover.</p>
-   </div>`;
+   <p class="sub" style="margin-top:10px;line-height:1.5">💡 Arrasta as bolinhas vazias para desenhar a formação · toca numa zona livre para criar uma posição · arrasta uma bolinha para fora do campo para a remover.</p>`;
   bindDnD();
 }
 function instrTact(){return (M&&!M.done&&M.interactive)?(M.fx.h===G.my?M.Th:M.Ta):G.tactic}
@@ -925,7 +928,12 @@ function instrSheet(){
      <button class="${T.posse?"on":""}" onclick="instrSet('posse',${T.posse?0:1})">Posse curta</button></div>
    <button class="btn" style="margin-top:12px" onclick="closeSheet();if(!liveEdit&&tab==='tactics')setTab('tactics')">✓ Pronto</button>`);
 }
-function instrSet(k,v){instrTact()[k]=v;instrSheet();}
+function instrSet(k,v){
+  instrTact()[k]=v;
+  if(document.querySelector("#sheet-bg.on")){instrSheet();return;} // se veio do popup, atualiza o popup
+  if(M&&!M.done&&M.interactive&&document.querySelector("#scr-livetact.on")){renderLiveTact();return;}
+  setTab("tactics"); // tab Tática: re-renderiza inline
+}
 function cellHTML(r,col,T,t,extra){
   const key=r+"-"+col,g=T.grid[key];
   let inner="",cls="";
