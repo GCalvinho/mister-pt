@@ -143,7 +143,11 @@ table.tbl .tn{max-width:140px}
 .drag-ghost{position:fixed;z-index:99;pointer-events:none;transform:translate(-50%,-60%)}
 .bench{display:flex;gap:8px;overflow-x:auto;padding:10px 2px;-webkit-overflow-scrolling:touch}
 .bench .bchip{flex:none;width:74px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:7px 5px;text-align:center;touch-action:none}
-#lt-pitch-wrap{max-width:66%;margin:0 auto}
+#lt-pitch-wrap{max-width:72%;margin:0 auto}
+#lt-pitch-wrap .chip{width:46px}
+#lt-pitch-wrap .chip .cdot{width:32px;height:32px;font-size:11px}
+#lt-pitch-wrap .chip .cname{font-size:8px;max-width:50px;padding:1px 3px}
+#lt-pitch-wrap .chip .crole{font-size:7px}
 #lt-bench .bench{overflow-x:auto;scroll-snap-type:x proximity}
 #lt-bench .bchip{touch-action:pan-x;scroll-snap-align:start}
 #lt-instr .card{padding:10px}
@@ -943,9 +947,11 @@ function benchHTML(p){
 function bindDnD(){
   let ghost=null,fromCell=null,pid=null,slotKey=null,mode=null,sx=0,sy=0,lx=0;
   const pitchEl=$("pitch");
+  let benchEl=null;
   const start=(e,el)=>{
     if(el.dataset.slot!=null&&el.dataset.pid==null){slotKey=el.dataset.slot;pid=null;fromCell=null;}
     else{pid=+el.dataset.pid;fromCell=el.dataset.cell||null;slotKey=null;}
+    benchEl=el.closest?el.closest(".bench"):null;
     mode=null;sx=e.clientX;sy=e.clientY;lx=e.clientX;};
   const mkGhost=()=>{
     ghost=document.createElement("div");ghost.className="drag-ghost";
@@ -969,7 +975,7 @@ function bindDnD(){
       if(slotKey==null&&!fromCell&&Math.abs(dx)>Math.abs(dy)*1.2)mode="scroll"; // gesto horizontal no banco = scroll
       else{mode="drag";mkGhost();}
     }
-    if(mode==="scroll"){const b=$("bench");if(b)b.scrollLeft-=(e.clientX-lx);lx=e.clientX;return;}
+    if(mode==="scroll"){if(benchEl)benchEl.scrollLeft-=(e.clientX-lx);lx=e.clientX;return;}
     ghost.style.left=e.clientX+"px";ghost.style.top=e.clientY+"px";
     document.querySelectorAll(".pcell").forEach(c=>c.classList.remove("hl"));
     const cell=document.elementFromPoint(e.clientX,e.clientY)?.closest(".pcell");
@@ -997,14 +1003,14 @@ function bindDnD(){
     pid=null;fromCell=null;mode=null;
     if(wasScroll)return;
     if(wasDrag){
-      if(cell)dropOnCell(p0,fc,cell.dataset.cell);
+      if(cell)dropOrSub(p0,fc,cell.dataset.cell);
       else if(fc&&!pitchEl.contains(document.elementFromPoint(e.clientX,e.clientY))){
         if(liveEdit){retact();}
         else{if(G.tactic.grid[fc])G.tactic.grid[fc].pid=null;setTab("tactics");toast("Posição libertada — arrasta um jogador para a preencher");}}
       else retact();
     }else{ // toque
       if(fc){
-        if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,fc);}
+        if(dragSel!=null){const s=dragSel;dragSel=null;dropOrSub(s,null,fc);}
         else chipMenu(p0,fc);
       }else{
         if(dragSel===p0)dragSel=null;else dragSel=p0;
@@ -1034,6 +1040,26 @@ function bindDnD(){
       retact();
     }
   }));
+}
+function dropOrSub(pid,from,to){
+  // durante o jogo, largar um suplente (vindo do banco) sobre um titular = substituição
+  if(liveEdit&&from==null){liveSubDrag(pid,to);return;}
+  dropOnCell(pid,from,to);
+}
+function liveSubDrag(inPid,cellKey){
+  const mine=M.fx.h===G.my?{XI:M.xh,team:M.th}:{XI:M.xa,team:M.ta};
+  const g=liveEdit.grid[cellKey];
+  if(!g||g.pid==null){toast("Larga sobre um titular para o substituir");renderLiveTact();return;}
+  const outPid=g.pid;if(outPid===inPid){renderLiveTact();return;}
+  if(M.subs[mine.team.i]<=0){toast("Sem substituições restantes");renderLiveTact();return;}
+  const outX=mine.XI.find(x=>x.p.id===outPid);
+  const inP=mine.team.players.find(p=>p.id===inPid);
+  if(!outX||!inP){renderLiveTact();return;}
+  if((outX.band==="gk")!==(inP.nr==="GR")){toast("O guarda-redes só pode ser substituído por outro guarda-redes");renderLiveTact();return;}
+  if(inP.susp||inP.inj){toast("Esse jogador não está disponível");renderLiveTact();return;}
+  doSub(mine.team,mine.XI,outX,inP);
+  liveEdit.grid[cellKey].pid=inP.id;
+  renderLiveTact();toast("Substituição: entra "+inP.n.split(" ").slice(-1)[0]);
 }
 function dropOnCell(pid,from,to){
   if(!to)return;
@@ -1413,14 +1439,14 @@ function renderLiveTact(){
   // banco de suplentes disponíveis
   const inGrid=new Set(mine.XI.map(x=>x.p.id));
   const out=new Set(M.extra[mine.team.i]||[]);
+  const RO={GR:0,DL:1,ALA:1,CEN:1,MDF:2,B2B:2,MCR:2,EXT:3,AVI:3,PL:3,F9:3};
   const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!out.has(p.id)&&!p.susp&&!p.inj)
-    .sort((a,b)=>b.ovr-a.ovr);
+    .sort((a,b)=>(RO[a.nr]??2)-(RO[b.nr]??2)||b.ovr-a.ovr);
   $("lt-bench").innerHTML=`<div class="sub" style="margin:12px 0 6px">Banco · ${M.subs[mine.team.i]} substituições restantes (toca num titular no campo para substituir)</div>
-   <div class="bench">${bench.map(p=>`<div class="bchip" onclick="benchTapLive(${p.id})">
+   <div class="bench">${bench.map(p=>`<div class="bchip" data-pid="${p.id}">
      <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b>${p.n.split(" ").slice(-1)[0]}</b>
      <div class="sub">${ROLE_SHORT[p.nr]||p.nr}</div></div>`).join("")||'<div class="empty" style="padding:10px">Sem suplentes disponíveis.</div>'}</div>`;
 }
-function benchTapLive(pid){toast("Toca primeiro no jogador em campo que queres substituir.");}
 function renderLivePitch(){
   const t=G.teams[G.my],T=liveEdit;
   $("lt-pitch-wrap").innerHTML=`<div class="pitch" id="pitch">
