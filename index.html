@@ -125,6 +125,7 @@ table.tbl .tn{max-width:140px}
 .pitch-wrap{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:
   repeating-linear-gradient(0deg,#11331f 0 9.6%,#0e2c1b 9.6% 19.2%)}
 .pitch{position:relative;width:100%;aspect-ratio:10/13.2;touch-action:none}
+.pitch-btn{position:absolute;top:8px;right:8px;z-index:5;background:rgba(0,0,0,.62);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:9px;font-size:11px;font-weight:700;padding:7px 11px;cursor:pointer;backdrop-filter:blur(3px);touch-action:manipulation}
 .pitch .markings{position:absolute;inset:0;pointer-events:none;opacity:.5}
 .pgrid{position:absolute;inset:4% 3% 2% 3%;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr) .8fr;gap:2px}
 .pcell{border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative}
@@ -855,18 +856,15 @@ function renderTactics(c){
        // ordem visual: ataque em cima, GR em baixo
        (()=>{let h="";for(let r=5;r>=1;r--)for(let col=0;col<5;col++)h+=cellHTML(r,col,T,t);h+=cellHTML(0,2,T,t,"gkcell");return h})()
      }</div>
+     <button class="pitch-btn" onclick="emptyAll()">🧹 Esvaziar</button>
    </div></div>
+   <div class="row" style="gap:8px;margin:8px 0 2px">
+     <div class="sub" style="flex:1">Mentalidade <b style="color:var(--text)">${["Defensiva","Equilibrada","Ofensiva"][T.ment]}</b> · Pressão <b style="color:var(--text)">${["Baixa","Média","Alta"][T.press]}</b>${[T.contra?" · Contra-ataque":"",T.posse?" · Posse curta":""].join("")}</div>
+     <button class="btn ghost sm" style="width:auto;padding:8px 14px" onclick="instrSheet()">⚙ Instruções</button>
+   </div>
    <div class="sub" style="text-align:center;margin:6px 0 2px">Arrasta jogadores para as posições · ${Object.values(T.grid).filter(g=>g&&g.pid!=null).length}/11</div>
    <div class="bench" id="bench">${benchPs.map(p=>benchHTML(p)).join("")}</div>
-   <div class="card"><h3>Instruções da tática</h3>
-     <div class="kv"><span>Mentalidade</span><b>${["Defensiva","Equilibrada","Ofensiva"][T.ment]}</b></div>
-     <div class="kv"><span>Pressão</span><b>${["Baixa","Média","Alta"][T.press]}</b></div>
-     <div class="kv"><span>Variantes</span><b>${[T.contra?"Contra-ataque":"",T.posse?"Posse curta":""].filter(Boolean).join(" · ")||"—"}</b></div>
-     <button class="btn ghost" onclick="instrSheet()">⚙ Ajustar instruções</button>
-     <button class="btn ghost" onclick="autoTactic();setTab('tactics');toast('Onze automático definido')">Onze automático (4-3-3)</button>
-     <button class="btn ghost" onclick="emptyAll()">Esvaziar onze (manter formação)</button>
-     <p class="sub" style="margin-top:8px;line-height:1.5">💡 Arrasta as bolinhas vazias para desenhar a formação · toca numa zona livre para criar uma posição · arrasta uma bolinha para fora do campo para a remover.</p>
-   </div>`;
+   <p class="sub" style="margin-top:10px;line-height:1.5">💡 Arrasta as bolinhas vazias para desenhar a formação · toca numa zona livre para criar uma posição · arrasta uma bolinha para fora do campo para a remover.</p>`;
   bindDnD();
 }
 function instrTact(){return (M&&!M.done&&M.interactive)?(M.fx.h===G.my?M.Th:M.Ta):G.tactic}
