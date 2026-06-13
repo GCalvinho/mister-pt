@@ -1145,7 +1145,8 @@ function aiBrain(home){
     const tired=XI.filter(x=>x.band!=="gk"&&x.p.sta<55).sort((a,b)=>a.p.sta-b.p.sta)[0];
     if(tired){
       const inGrid=new Set(XI.map(x=>x.p.id));
-      const sub=team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===false)
+      const aout=new Set(M.extra[team.i]||[]);
+      const sub=team.players.filter(p=>!inGrid.has(p.id)&&!aout.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===false)
         .sort((a,b)=>effOvr(b,tired.role)-effOvr(a,tired.role))[0];
       if(sub){doSub(team,XI,tired,sub);}
     }
@@ -1242,7 +1243,8 @@ function pickSubFor(pid){
   subOut=mine.XI.find(x=>x.p.id===pid);
   const inGrid=new Set(mine.XI.map(x=>x.p.id));
   const isGK=subOut.band==="gk";
-  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===isGK).sort((a,b)=>effOvr(b,subOut.role)-effOvr(a,subOut.role));
+  const out=new Set(M.extra[mine.team.i]||[]);
+  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!out.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===isGK).sort((a,b)=>effOvr(b,subOut.role)-effOvr(a,subOut.role));
   if(!bench.length){toast(isGK?"Sem guarda-redes no banco":"Sem jogadores disponíveis");return;}
   sheet(`<h3 style="margin-bottom:8px">Quem entra por ${subOut.p.n}?</h3>`+
    bench.map(p=>`<div class="list-item" onclick="confirmSub(${p.id})">
@@ -2386,7 +2388,8 @@ function matchInjury(){
   const XDr=XI;
   if(M.subs[team.i]>0){
     const inGrid=new Set(XI.map(e=>e.p.id));
-    const rep=team.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===(x.band==="gk"))
+    const out=new Set(M.extra[team.i]||[]);
+    const rep=team.players.filter(p=>!inGrid.has(p.id)&&!out.has(p.id)&&!p.susp&&!p.inj&&(p.nr==="GR")===(x.band==="gk"))
       .sort((a,b)=>effOvr(b,x.role)-effOvr(a,x.role))[0];
     if(rep){
       M.subs[team.i]--;
