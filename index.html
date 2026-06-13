@@ -1230,12 +1230,27 @@ function stepMinute(){
   M.min++;
   const sh=sectors(M.xh,M.Th),sa=sectors(M.xa,M.Ta);
   // posse pelo meio-campo + instruções
+  // posse de bola: meio-campo + posse curta (ganho), mas penalizada se o passe da equipa for fraco
+  const passQ=xi=>{const ps=xi.filter(x=>x.band!=="gk");return ps.length?ps.reduce((s,x)=>s+x.p.a[0],0)/ps.length:60;};
+  const pqH=passQ(M.xh),pqA=passQ(M.xa);
   let ph=sh.mid*1.06/(sh.mid*1.06+sa.mid); // vantagem caseira
-  if(M.Th.posse)ph+=0.02;if(M.Ta.posse)ph-=0.02;
-  // probabilidade de lance de perigo por minuto
+  if(M.Th.posse)ph+=0.04;if(M.Ta.posse)ph-=0.04; // posse curta segura mais a bola
+  // fatores de mentalidade: ofensiva cria mais (arrisca), defensiva contrai
+  const offF=T=>T.ment===2?1.22:T.ment===0?0.80:1;   // volume ofensivo próprio
+  const expoF=T=>T.ment===2?1.18:T.ment===0?0.85:1;  // exposição concedida ao adversário
+  // pressão: alta = mais intensidade mas mais espaços atrás; baixa = bloco baixo, sai pouco
+  const pressOwn=T=>T.press===2?1.10:T.press===0?0.82:1;   // o quanto a equipa sai para o ataque
+  const pressExp=T=>T.press===2?1.28:T.press===0?0.80:1;   // espaço concedido nas costas
   const base=0.115;
-  let chH=base*(0.55+ph)*(sh.atk/(sa.def+sh.atk))*2*( M.Th.contra&&M.Ta.ment===2?1.15:1);
-  let chA=base*(0.55+(1-ph))*(sa.atk/(sh.def+sa.atk))*2*(M.Ta.contra&&M.Th.ment===2?1.15:1);
+  let chH=base*(0.55+ph)*(sh.atk/(sa.def+sh.atk))*2*offF(M.Th)*pressOwn(M.Th)*expoF(M.Ta)*pressExp(M.Ta);
+  let chA=base*(0.55+(1-ph))*(sa.atk/(sh.def+sa.atk))*2*offF(M.Ta)*pressOwn(M.Ta)*expoF(M.Th)*pressExp(M.Th);
+  // contra-ataque: muito eficaz para o mais fraco contra adversário ofensivo/pressão alta
+  const underdog=(att,dfn)=>att.atk<dfn.def*0.92; // equipa claramente inferior em qualidade
+  if(M.Th.contra){let m=1;if(M.Ta.ment===2)m+=0.18;if(M.Ta.press===2)m+=0.16;if(underdog(sh,sa))m+=0.22;chH*=m;chA*=0.80;} // bloco recuado: concede menos
+  if(M.Ta.contra){let m=1;if(M.Th.ment===2)m+=0.18;if(M.Th.press===2)m+=0.16;if(underdog(sa,sh))m+=0.22;chA*=m;chH*=0.80;}
+  // posse curta com passe fraco → bola perdida → contra-ataques sofridos
+  if(M.Th.posse&&pqH<70)chA*=1+(70-pqH)*0.012;
+  if(M.Ta.posse&&pqA<70)chH*=1+(70-pqA)*0.012;
   if(M.mom&&M.mom.kind==="cut"&&M.min-M.mom.min<=2){if(M.mom.side===1)chH*=1.6;else chA*=1.6;}
   const r=Math.random();
   if(Math.random()<0.0042&&M.min>5&&M.min<88)matchInjury();
@@ -2145,6 +2160,7 @@ function chainText(chain,TT,fromCut,counter){
   if(L.length===2)return intro+nm(L[0])+" serve "+nm(L[1])+" "+corrName(L[1].x)+"...";
   return intro+nm(L[0])+" abre "+corrName(L[1].x)+" para "+nm(L[1])+", que encontra "+nm(L[2])+" "+zoneName(L[2].y)+"...";
 }
+function meanPass(xi){const ps=xi.filter(x=>x.band!=="gk");return ps.length?ps.reduce((s,x)=>s+x.p.a[0],0)/ps.length:60;}
 function runAttack(home,counter){
   const XA=home?M.xh:M.xa,XDr=home?M.xa:M.xh,TT=home?M.th:M.ta,TD=home?M.ta:M.th;
   const TAC=home?M.Th:M.Ta,TACd=home?M.Ta:M.Th;
@@ -2213,7 +2229,7 @@ function seqShot(home,cur,chain,counter,fromCut,gq,press,TT,TD){
   addLine("perigo",chainText(chain,TT,fromCut,counter),M.min);
   const longShot=cur.y>=0.30;
   let pGoal=clamp(0.24+(cur.p.a[1]-gq)/160,0.10,0.50)*(1-press*0.15);
-  if(longShot)pGoal*=0.60; if(counter)pGoal*=1.20;
+  const _t=home?M.Th:M.Ta; if(longShot)pGoal*=0.60; if(counter)pGoal*=1.32; if(_t.ment===2)pGoal*=1.06; if(_t.ment===0)pGoal*=0.94;
   const big=pGoal>=0.28||counter;
   const shooter=cur.p,rr=Math.random();
   if(rr<pGoal){
@@ -2254,7 +2270,7 @@ function seqCut(home,tk,chain,XDr,TT,TD,fromCut,counter){
   const entry=XDr.find(e=>e.p.id===tk.p.id);
   if(entry)foulMaybe(entry,XDr,home);
   M.mom={side:home?0:1,kind:"cut",min:M.min};
-  if(!counter&&Math.random()<0.30&&M.min<89)runAttack(home?0:1,true);
+  const _atkT=home?M.Th:M.Ta,_atkXI=home?M.xh:M.xa;if(!counter&&Math.random()<(_atkT.posse&&meanPass(_atkXI)<68?0.42:0.30)&&M.min<89)runAttack(home?0:1,true);
 }
 function seqIntercept(home,cur,target,Dout,chain,TT,TD,fromCut,counter){
   addLine("perigo",chainText(chain,TT,fromCut,counter),M.min);
