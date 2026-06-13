@@ -150,7 +150,18 @@ table.tbl .tn{max-width:140px}
 
 /* ===== Relato ===== */
 .scoreboard{background:#081710;border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
-.scoreboard .teams{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.scoreboard .teams{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mteam{flex:1;min-width:0}
+.mcore{flex:0 0 auto;text-align:center;padding-top:6px}
+.mcrest{width:46px;height:46px;margin:0 auto 4px}
+.mcrest svg{width:100%;height:100%}
+.mtev{margin-top:6px;font-size:10.5px;line-height:1.55;color:var(--muted);min-height:14px}
+.mtev div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lineups{display:flex;gap:10px}
+.lucol{flex:1;min-width:0}
+.luhead{font-weight:800;font-size:13px;text-align:center;padding:6px 0;border-bottom:1px solid var(--line);margin-bottom:6px;color:var(--amber)}
+.lurow{font-size:12px;padding:4px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid rgba(255,255,255,.04)}
+.lupos{display:inline-block;min-width:30px;font-size:9px;font-weight:800;color:var(--muted)}
 .scoreboard .tname{flex:1;font-weight:800;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scoreboard .score{font-size:30px;font-weight:900;color:var(--amber);letter-spacing:.05em;font-family:ui-monospace,"SF Mono","Roboto Mono",monospace;white-space:nowrap}
 .scoreboard .mclock{color:var(--amber);font-family:ui-monospace,monospace;font-size:13px;margin-top:4px;letter-spacing:.15em}
@@ -278,31 +289,41 @@ table.tbl .tn{max-width:140px}
   <div class="appbar"><div class="ttl"><b id="m-comp">Jornada</b><small id="m-venue"></small></div><div class="money mono" id="m-att"></div></div>
   <div style="padding:10px 14px 0"><div class="scoreboard">
     <div class="teams">
-      <div class="tname" id="m-hname" style="text-align:left"></div>
-      <div class="score" id="m-score">0 — 0</div>
-      <div class="tname" id="m-aname" style="text-align:right"></div>
+      <div class="mteam" style="text-align:center">
+        <div class="mcrest" id="m-hcrest"></div>
+        <div class="tname" id="m-hname"></div>
+        <div class="mtev" id="m-hev"></div>
+      </div>
+      <div class="mcore">
+        <div class="score" id="m-score">0 — 0</div>
+        <div class="mclock" id="m-clock">00'</div>
+      </div>
+      <div class="mteam" style="text-align:center">
+        <div class="mcrest" id="m-acrest"></div>
+        <div class="tname" id="m-aname"></div>
+        <div class="mtev" id="m-aev"></div>
+      </div>
     </div>
-    <div class="mclock" id="m-clock">00'</div>
   </div></div>
-  <div id="m-events" style="display:flex;gap:12px;padding:7px 16px 0;font-size:10.5px;line-height:1.6"></div>
   <div class="relato" id="m-relato"></div>
   <div style="padding:0 14px calc(var(--sab) + 12px)">
     <div class="matchctl">
-      <button id="m-pause">⏸ Pausa</button>
-      <button id="m-speed">1×</button>
-      <button id="m-tactics">Tática</button>
+      <button id="m-tactics">📋 Tática</button>
+      <button id="m-kick" class="primary" style="display:none">▶ Iniciar jogo</button>
       <button id="m-ht" class="primary" style="display:none">▶ Iniciar 2.ª parte</button>
       <button id="m-done" class="primary" style="display:none">Continuar</button>
     </div>
   </div>
 </div>
 
-<!-- ECRÃ: Posições ao vivo (durante o jogo) -->
+<!-- ECRÃ: Tática ao vivo (durante o jogo) -->
 <div class="screen" id="scr-livetact">
-  <div class="appbar"><button class="icon-btn" onclick="cancelLiveTact()">‹</button><div class="ttl"><b>Posições ao vivo</b><small>Arrasta os jogadores · toca num para mudar o role</small></div></div>
+  <div class="appbar"><button class="icon-btn" onclick="applyLiveTact()">‹</button><div class="ttl"><b>Tática ao vivo</b><small id="lt-sub">Arrasta para reposicionar · toca para substituir</small></div></div>
   <div class="content nonav">
+    <div id="lt-instr"></div>
     <div class="pitch-wrap" id="lt-pitch-wrap"></div>
-    <button class="btn" style="margin-top:12px" onclick="applyLiveTact()">✓ Aplicar e voltar ao jogo</button>
+    <div id="lt-bench"></div>
+    <button class="btn" style="margin-top:12px" onclick="applyLiveTact()">✓ Voltar ao jogo</button>
   </div>
 </div>
 
@@ -1208,13 +1229,24 @@ function playMatch(fx,interactive){
     $("m-venue").textContent=th.st;
     $("m-att").textContent="";
     $("m-hname").textContent=th.n;$("m-aname").textContent=ta.n;
-    $("m-relato").innerHTML="";$("m-events").innerHTML="";$("m-done").style.display="none";$("m-ht").style.display="none";
-    $("m-pause").style.display="";$("m-speed").style.display="";$("m-tactics").style.display="";
-    $("m-pause").textContent="⏸ Pausa";$("m-speed").textContent="1×";M.ht=0;
-    addLine("info","Bem-vindos ao "+th.st+"! "+th.n+" recebe o "+ta.n+". Já rola a bola!");
-    updScore();tick();
+    $("m-hcrest").innerHTML=crest(th);$("m-acrest").innerHTML=crest(ta);
+    $("m-relato").innerHTML="";$("m-hev").innerHTML="";$("m-aev").innerHTML="";
+    $("m-done").style.display="none";$("m-ht").style.display="none";
+    $("m-tactics").style.display="";M.ht=0;M.started=false;M.paused=true;
+    // ecrã inicial: onzes das duas equipas, à espera do apito
+    updScore();
+    showLineups();
+    $("m-kick").style.display="";
   } else { while(!M.done)stepMinute(); }
   return M;
+}
+function showLineups(){
+  const fmtXI=xi=>xi.slice().sort((a,b)=>("0"+["gk","def","dm","mid","am","atk"].indexOf(a.band))<("0"+["gk","def","dm","mid","am","atk"].indexOf(b.band))?-1:1)
+    .map(e=>`<div class="lurow"><span class="lupos">${ROLE_SHORT[e.role]||e.role}</span> ${flag(e.p)} ${e.p.n}</div>`).join("");
+  $("m-relato").innerHTML=`<div class="lineups">
+    <div class="lucol"><div class="luhead">${M.th.s}</div>${fmtXI(M.xh)}</div>
+    <div class="lucol"><div class="luhead">${M.ta.s}</div>${fmtXI(M.xa)}</div>
+  </div>`;
 }
 function compName(c){return c==="L1"?"Liga Portugal":c==="L2"?"Liga Portugal 2":c==="TL"?"Taça da Liga":"Taça de Portugal"}
 function addLine(cls,txt,min){
@@ -1229,8 +1261,8 @@ function evPush(homeSide,icon,name,min){
   M.mev[homeSide?"h":"a"].push({icon,name,min});
   if(!M.interactive)return;
   const render=list=>list.map(e=>`<div>${e.icon} ${e.name.split(" ").slice(-1)[0]} ${e.min}'</div>`).join("");
-  $("m-events").innerHTML=`<div style="flex:1;text-align:left;color:var(--muted)">${render(M.mev.h)}</div>
-   <div style="flex:1;text-align:right;color:var(--muted)">${render(M.mev.a)}</div>`;
+  $("m-hev").innerHTML=render(M.mev.h);
+  $("m-aev").innerHTML=render(M.mev.a);
 }
 let tickT=null;
 function tick(){
@@ -1243,7 +1275,7 @@ function stepMinute(){
   if(M.interactive&&M.min===45&&M.ht!==1&&M.ht!==2){ // intervalo: paragem manual
     M.ht=1;M.paused=true;clearTimeout(tickT);
     addLine("info","INTERVALO! "+M.th.s+" "+M.gh+"–"+M.ga+" "+M.ta.s+". Ajusta a tática ou faz substituições antes de recomeçar.");
-    $("m-ht").style.display="";$("m-pause").style.display="none";
+    $("m-ht").style.display="";
     updScore();return;
   }
   M.min++;
@@ -1326,27 +1358,53 @@ function doSub(team,XI,outX,inP){
 function endMatch(){
   M.done=true;clearTimeout(tickT);
   addLine("info","FINAL DO JOGO! "+M.th.n+" "+M.gh+"–"+M.ga+" "+M.ta.n);
-  if(M.interactive){$("m-done").style.display="block";$("m-ht").style.display="none";$("m-pause").style.display="none";$("m-speed").style.display="none";$("m-tactics").style.display="none";updScore();}
+  if(M.interactive){$("m-done").style.display="block";$("m-ht").style.display="none";$("m-kick").style.display="none";$("m-tactics").style.display="none";updScore();}
   // limpa amarelos de jogo
   [...M.th.players,...M.ta.players].forEach(p=>delete p.yel);
 }
 /* Controlos */
-$("m-pause").onclick=()=>{M.paused=!M.paused;$("m-pause").textContent=M.paused?"▶ Seguir":"⏸ Pausa";if(!M.paused)tick()};
-$("m-speed").onclick=()=>{M.speed=M.speed%3+1;$("m-speed").textContent=M.speed+"×"};
+$("m-kick").onclick=()=>{
+  M.started=true;M.paused=false;
+  $("m-kick").style.display="none";$("m-relato").innerHTML="";
+  addLine("info","Bem-vindos ao "+M.th.st+"! "+M.th.n+" recebe o "+M.ta.n+". Apita o árbitro — já rola a bola!");
+  tick();
+};
 $("m-done").onclick=()=>{afterMyMatch();};
 $("m-ht").onclick=()=>{
   M.ht=2;M.paused=false;
-  $("m-ht").style.display="none";$("m-pause").style.display="";$("m-pause").textContent="⏸ Pausa";
+  $("m-ht").style.display="none";
   addLine("info","Recomeça a partida para a segunda parte!");
   tick();
 };
 function openLiveTact(){
+  M.paused=true;clearTimeout(tickT);
   const mine=M.fx.h===G.my?{XI:M.xh}:{XI:M.xa};
   const grid={};
   mine.XI.forEach(x=>grid[x.zone]={pid:x.p.id,role:x.role});
   liveEdit={grid};
-  closeSheet();show("scr-livetact");renderLivePitch();
+  closeSheet();show("scr-livetact");renderLiveTact();
 }
+function renderLiveTact(){
+  const mine=M.fx.h===G.my?{T:M.Th,XI:M.xh,team:M.th}:{T:M.Ta,XI:M.xa,team:M.ta};
+  const T=mine.T;
+  $("lt-instr").innerHTML=`<div class="card" style="margin-bottom:10px">
+    <div class="sub" style="margin-bottom:4px">Mentalidade</div>
+    <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${T.ment===i?"on":""}" onclick="liveMent(${i})">${m}</button>`).join("")}</div>
+    <div class="sub" style="margin:8px 0 4px">Pressão</div>
+    <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${T.press===i?"on":""}" onclick="livePress(${i})">${m}</button>`).join("")}</div>
+   </div>`;
+  renderLivePitch();
+  // banco de suplentes disponíveis
+  const inGrid=new Set(mine.XI.map(x=>x.p.id));
+  const out=new Set(M.extra[mine.team.i]||[]);
+  const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!out.has(p.id)&&!p.susp&&!p.inj)
+    .sort((a,b)=>b.ovr-a.ovr);
+  $("lt-bench").innerHTML=`<div class="sub" style="margin:12px 0 6px">Banco · ${M.subs[mine.team.i]} substituições restantes (toca num titular no campo para substituir)</div>
+   <div class="bench">${bench.map(p=>`<div class="bchip" data-pid="${p.id}" onclick="benchTapLive(${p.id})">
+     <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b>${p.n.split(" ").slice(-1)[0]}</b>
+     <div class="sub">${ROLE_SHORT[p.nr]||p.nr}</div></div>`).join("")||'<div class="empty" style="padding:10px">Sem suplentes disponíveis.</div>'}</div>`;
+}
+function benchTapLive(pid){toast("Toca primeiro no jogador em campo que queres substituir.");}
 function renderLivePitch(){
   const t=G.teams[G.my],T=liveEdit;
   $("lt-pitch-wrap").innerHTML=`<div class="pitch" id="pitch">
@@ -1373,31 +1431,15 @@ function applyLiveTact(){
   if(newXI.length!==mine.XI.length){toast("Mantém os "+mine.XI.length+" jogadores no campo");return;}
   mine.XI.length=0;newXI.forEach(x=>mine.XI.push(x));
   liveEdit=null;show("scr-match");
-  if(M.interactive)addLine("info","O treinador "+G.mgr+" reorganiza a equipa em campo.",M.min);
-  toast("Posições aplicadas ✓");
+  resumeMatch();
 }
-function cancelLiveTact(){liveEdit=null;show("scr-match")}
-function liveTacticsSheet(){
-  M.paused=true;$("m-pause").textContent="▶ Seguir";
-  const mine=M.fx.h===G.my?{T:M.Th,XI:M.xh,team:M.th}:{T:M.Ta,XI:M.xa,team:M.ta};
-  const inGrid=new Set(mine.XI.map(x=>x.p.id));
-  sheet(`<h3 style="margin-bottom:8px">Tática ao vivo · ${M.subs[mine.team.i]} substituições restantes</h3>
-   <div class="sub" style="margin-bottom:4px">Mentalidade</div>
-   <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${mine.T.ment===i?"on":""}" onclick="liveMent(${i})">${m}</button>`).join("")}</div>
-   <div class="sub" style="margin:6px 0 4px">Pressão</div>
-   <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${mine.T.press===i?"on":""}" onclick="livePress(${i})">${m}</button>`).join("")}</div>
-   <button class="btn ghost" style="margin-top:12px" onclick="openLiveTact()">📋 Mudar posições e roles (arrastar)</button>
-   <h3 style="margin:14px 0 6px">Em campo (toca para substituir)</h3>
-   ${mine.XI.map(x=>`<div class="list-item" onclick="pickSubFor(${x.p.id})">
-     <div class="posb pos-${x.band==="gk"?"GR":posGroup(x.p.pos)}">${x.role}</div>
-     <div class="grow"><b style="font-size:13px">${x.p.n}</b></div>
-     <div class="sub mono">${Math.round(x.p.sta)}%</div>
-     <div class="ovr ${ovrClass(Math.round(effOvr(x.p,x.role)))}">${Math.round(effOvr(x.p,x.role))}</div></div>`).join("")}
-   <button class="btn" onclick="closeSheet()">✓ Pronto</button>`);
+function resumeMatch(){
+  // retoma o jogo se estava a decorrer (não no intervalo nem antes do apito)
+  if(M&&M.interactive&&!M.done&&M.started&&M.ht!==1){M.paused=false;tick();}
 }
-$("m-tactics").onclick=liveTacticsSheet;
-function liveMent(i){(M.fx.h===G.my?M.Th:M.Ta).ment=i;liveTacticsSheet()}
-function livePress(i){(M.fx.h===G.my?M.Th:M.Ta).press=i;liveTacticsSheet()}
+function cancelLiveTact(){liveEdit=null;show("scr-match");resumeMatch();}
+function liveMent(i){(M.fx.h===G.my?M.Th:M.Ta).ment=i;renderLiveTact()}
+function livePress(i){(M.fx.h===G.my?M.Th:M.Ta).press=i;renderLiveTact()}
 let subOut=null;
 function pickSubFor(pid){
   const mine=M.fx.h===G.my?{T:M.Th,XI:M.xh,team:M.th}:{T:M.Ta,XI:M.xa,team:M.ta};
@@ -1417,7 +1459,10 @@ function pickSubFor(pid){
 function confirmSub(pid){
   const mine=M.fx.h===G.my?{XI:M.xh,team:M.th}:{XI:M.xa,team:M.ta};
   const inP=mine.team.players.find(p=>p.id===pid);
+  const outZone=subOut.zone;
   doSub(mine.team,mine.XI,subOut,inP);closeSheet();toast("Substituição feita");
+  if(liveEdit&&liveEdit.grid[outZone])liveEdit.grid[outZone].pid=inP.id; // mantém posição
+  if(document.querySelector("#scr-livetact.on"))renderLiveTact();
 }
 </script>
 <script>
