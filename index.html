@@ -48,7 +48,7 @@ input,select{font:inherit;color:var(--chalk);background:var(--card2);border:1px 
 select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238FAE9C' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 
 /* ===== Estrutura de ecrãs ===== */
-.screen{display:none;position:fixed;inset:0;flex-direction:column;background:var(--pitch)}
+.screen{display:none;position:fixed;top:0;left:0;right:0;height:var(--app-h,100dvh);flex-direction:column;background:var(--pitch)}
 .screen.on{display:flex}
 .appbar{padding:calc(var(--sat) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d2a1f,var(--pitch))}
 .appbar .club-strip{width:5px;align-self:stretch;border-radius:3px}
@@ -775,6 +775,11 @@ function refreshHeader(){
   $("hdr-budget").textContent=fmtM(t.budget);
   $("menu-dot").style.display=G.inbox.some(m=>m.unread)?"block":"none";
 }
+function setAppH(){try{document.documentElement.style.setProperty("--app-h",(window.innerHeight||0)+"px");}catch(e){}}
+setAppH();
+window.addEventListener("resize",setAppH);
+window.addEventListener("orientationchange",()=>setTimeout(setAppH,120));
+if(window.visualViewport)window.visualViewport.addEventListener("resize",setAppH);
 document.querySelectorAll(".tabbar button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function setTab(t){
   tab=t;
@@ -887,15 +892,21 @@ function renderTactics(c){
   const t=G.teams[G.my],T=G.tactic,inGrid=new Set(Object.values(T.grid).map(g=>g&&g.pid).filter(x=>x!=null));
   const benchPs=[...t.players].filter(p=>!inGrid.has(p.id)).sort((a,b)=>POSORD[a.pos]-POSORD[b.pos]||b.ovr-a.ovr);
   c.innerHTML=`
-   <div class="card" style="margin-bottom:10px">
-     <div class="sub" style="margin-bottom:4px">Mentalidade</div>
-     <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${T.ment===i?"on":""}" onclick="instrSet('ment',${i})">${m}</button>`).join("")}</div>
-     <div class="sub" style="margin:8px 0 4px">Pressão</div>
-     <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${T.press===i?"on":""}" onclick="instrSet('press',${i})">${m}</button>`).join("")}</div>
-     <div class="sub" style="margin:8px 0 4px">Variantes</div>
-     <div class="seg"><button class="${T.contra?"on":""}" onclick="instrSet('contra',${T.contra?0:1})">Contra-ataque</button>
-       <button class="${T.posse?"on":""}" onclick="instrSet('posse',${T.posse?0:1})">Posse curta</button></div>
-     <button class="btn ghost" style="margin-top:10px" onclick="emptyAll()">Esvaziar onze (manter formação)</button>
+   <div class="card" style="margin-bottom:10px;padding:10px 12px">
+     <div class="row" style="justify-content:space-between;align-items:center;cursor:pointer" onclick="tacInstrOpen=!tacInstrOpen;setTab('tactics')">
+       <div class="dash-t" style="margin:0">Instruções</div>
+       <div class="sub" style="font-size:11.5px">${["Defensiva","Equilibrada","Ofensiva"][T.ment]} · ${["Baixa","Média","Alta"][T.press]}${T.contra?" · Contra":""}${T.posse?" · Posse":""} <span style="color:var(--amber)">${tacInstrOpen?"▲":"▼"}</span></div>
+     </div>
+     ${tacInstrOpen?`<div style="margin-top:10px">
+       <div class="sub" style="margin-bottom:4px">Mentalidade</div>
+       <div class="seg">${["Defensiva","Equilibrada","Ofensiva"].map((m,i)=>`<button class="${T.ment===i?"on":""}" onclick="instrSet('ment',${i})">${m}</button>`).join("")}</div>
+       <div class="sub" style="margin:8px 0 4px">Pressão</div>
+       <div class="seg">${["Baixa","Média","Alta"].map((m,i)=>`<button class="${T.press===i?"on":""}" onclick="instrSet('press',${i})">${m}</button>`).join("")}</div>
+       <div class="sub" style="margin:8px 0 4px">Variantes</div>
+       <div class="seg"><button class="${T.contra?"on":""}" onclick="instrSet('contra',${T.contra?0:1})">Contra-ataque</button>
+         <button class="${T.posse?"on":""}" onclick="instrSet('posse',${T.posse?0:1})">Posse curta</button></div>
+       <button class="btn ghost" style="margin-top:10px" onclick="emptyAll()">Esvaziar onze (manter formação)</button>
+     </div>`:""}
    </div>
    <div class="pitch-wrap"><div class="pitch" id="pitch">
      <svg class="markings" viewBox="0 0 100 132" preserveAspectRatio="none" width="100%" height="100%">
@@ -1869,6 +1880,7 @@ function scorersHTML(){
 /* =================== MERCADO =================== */
 let mktPos="",mktQ="",mktRole="",mktAge=0,mktFree=0,mktPage=0;
 let clubeView="academia";
+let tacInstrOpen=false;
 const GROUP_ROLES={GR:["GR"],D:["DL","CEN"],M:["MDF","B2B","MCR"],A:["EXT","PL"]};
 function maskIdx(p){ // atributos escondidos para jogadores que não são meus (estável por id)
   const n=2+(p.id%2);let s=(p.id*2654435761)>>>0;const arr=[0,1,2,3,4],out=[];
