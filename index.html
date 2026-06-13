@@ -143,6 +143,10 @@ table.tbl .tn{max-width:140px}
 .drag-ghost{position:fixed;z-index:99;pointer-events:none;transform:translate(-50%,-60%)}
 .bench{display:flex;gap:8px;overflow-x:auto;padding:10px 2px;-webkit-overflow-scrolling:touch}
 .bench .bchip{flex:none;width:74px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:7px 5px;text-align:center;touch-action:none}
+#lt-pitch-wrap{max-width:66%;margin:0 auto}
+#lt-bench .bench{overflow-x:auto;scroll-snap-type:x proximity}
+#lt-bench .bchip{touch-action:pan-x;scroll-snap-align:start}
+#lt-instr .card{padding:10px}
 .bench .bchip.selected{border-color:var(--amber);background:#2a2510}
 .bench .bchip b{display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bench .bchip .sub{font-size:9.5px}
@@ -157,15 +161,15 @@ table.tbl .tn{max-width:140px}
 .mcrest svg{width:100%;height:100%}
 .mtev{margin-top:6px;font-size:10.5px;line-height:1.55;color:var(--muted);min-height:14px}
 .mtev div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lineups-screen{flex:1;display:none;overflow-y:auto;padding:10px 14px;-webkit-overflow-scrolling:touch}
-.luwrap{margin:auto 0}
-.lutitle{text-align:center;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
-.lineups{display:flex;gap:10px}
-.lucol{flex:1;min-width:0;background:#0c1f14;border:1px solid var(--line);border-radius:12px;padding:8px 6px}
-.luhead{font-weight:800;font-size:14px;text-align:center;padding:5px 0 8px;border-bottom:1px solid var(--line);margin-bottom:6px;color:var(--amber)}
-.lurow{display:flex;align-items:center;gap:6px;font-size:12px;padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.04)}
+.lineups-screen{flex:1;display:none;flex-direction:column;overflow-y:auto;padding:6px 14px 14px;-webkit-overflow-scrolling:touch}
+.luwrap{flex:1;display:flex;flex-direction:column;min-height:0}
+.lutitle{text-align:center;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;flex:0 0 auto}
+.lineups{flex:1;display:flex;gap:10px;min-height:0}
+.lucol{flex:1;min-width:0;display:flex;flex-direction:column;background:#0c1f14;border:1px solid var(--line);border-radius:12px;padding:6px 6px 8px}
+.luhead{font-weight:800;font-size:14px;text-align:center;padding:6px 0;border-bottom:1px solid var(--line);margin-bottom:2px;color:var(--amber);flex:0 0 auto}
+.lurow{flex:1;display:flex;align-items:center;gap:7px;font-size:12.5px;padding:0 4px;border-bottom:1px solid rgba(255,255,255,.04);min-height:0}
 .lurow:last-child{border-bottom:none}
-.lupos{flex:0 0 32px;font-size:9px;font-weight:800;color:var(--muted);text-align:center;background:rgba(255,255,255,.06);border-radius:4px;padding:2px 0}
+.lupos{flex:0 0 34px;font-size:8.5px;font-weight:800;color:var(--muted);text-align:center;background:rgba(255,255,255,.06);border-radius:5px;padding:3px 0;line-height:1.15}
 .luname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scoreboard .tname{flex:1;font-weight:800;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scoreboard .score{font-size:30px;font-weight:900;color:var(--amber);letter-spacing:.05em;font-family:ui-monospace,"SF Mono","Roboto Mono",monospace;white-space:nowrap}
@@ -1412,7 +1416,7 @@ function renderLiveTact(){
   const bench=mine.team.players.filter(p=>!inGrid.has(p.id)&&!out.has(p.id)&&!p.susp&&!p.inj)
     .sort((a,b)=>b.ovr-a.ovr);
   $("lt-bench").innerHTML=`<div class="sub" style="margin:12px 0 6px">Banco · ${M.subs[mine.team.i]} substituições restantes (toca num titular no campo para substituir)</div>
-   <div class="bench">${bench.map(p=>`<div class="bchip" data-pid="${p.id}" onclick="benchTapLive(${p.id})">
+   <div class="bench">${bench.map(p=>`<div class="bchip" onclick="benchTapLive(${p.id})">
      <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b>${p.n.split(" ").slice(-1)[0]}</b>
      <div class="sub">${ROLE_SHORT[p.nr]||p.nr}</div></div>`).join("")||'<div class="empty" style="padding:10px">Sem suplentes disponíveis.</div>'}</div>`;
 }
