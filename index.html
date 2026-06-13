@@ -1131,16 +1131,35 @@ function xiValid(){
 <script>
 /* =================== MOTOR DE JOGO =================== */
 /* Força por setores a partir das zonas ocupadas pela tática */
-function aiTactic(t){ // tática automática para equipas IA
-  const used=new Set(),grid={};
-  const best=(roles,zone)=>{let bp=null,bo=-1;
+const FORMATIONS={
+  "4-3-3":[["0-2",["GR"]],["1-0",["DL"]],["1-1",["CEN"]],["1-3",["CEN"]],["1-4",["DL"]],["3-1",["B2B","MDF"]],["3-2",["MDF","B2B"]],["3-3",["MCR","B2B"]],["5-0",["EXT"]],["5-2",["PL","F9"]],["5-4",["EXT"]]],
+  "4-4-2":[["0-2",["GR"]],["1-0",["DL"]],["1-1",["CEN"]],["1-3",["CEN"]],["1-4",["DL"]],["3-0",["EXT","ALA"]],["3-1",["B2B","MDF"]],["3-3",["B2B","MCR"]],["3-4",["EXT","ALA"]],["5-1",["PL","F9"]],["5-3",["PL","F9"]]],
+  "4-2-3-1":[["0-2",["GR"]],["1-0",["DL"]],["1-1",["CEN"]],["1-3",["CEN"]],["1-4",["DL"]],["2-1",["MDF","B2B"]],["2-3",["MDF","B2B"]],["4-0",["EXT","ALA"]],["4-2",["MCR"]],["4-4",["EXT","ALA"]],["5-2",["PL","F9"]]],
+  "3-5-2":[["0-2",["GR"]],["1-1",["CEN"]],["1-2",["CEN"]],["1-3",["CEN"]],["3-0",["ALA","EXT"]],["3-1",["B2B","MDF"]],["3-2",["MDF","MCR"]],["3-3",["B2B","MCR"]],["3-4",["ALA","EXT"]],["5-1",["PL","F9"]],["5-3",["PL","F9"]]],
+  "5-3-2":[["0-2",["GR"]],["1-0",["ALA","DL"]],["1-1",["CEN"]],["1-2",["CEN"]],["1-3",["CEN"]],["1-4",["ALA","DL"]],["3-1",["B2B","MDF"]],["3-2",["MDF","MCR"]],["3-3",["B2B","MCR"]],["5-1",["PL","F9"]],["5-3",["PL","F9"]]]
+};
+function fillFormation(t,def){
+  const used=new Set(),grid={};let score=0;
+  const best=(zone,roles)=>{let bp=null,bo=-1;
     t.players.forEach(p=>{if(used.has(p.id)||p.susp||p.inj)return;
       roles.forEach(r=>{const o=effOvr(p,r);if(o>bo){bo=o;bp={pid:p.id,role:r}}})});
-    if(bp){used.add(bp.pid);grid[zone]=bp;}};
-  best(["GR"],"0-2");best(["CEN"],"1-1");best(["CEN"],"1-3");best(["DL"],"1-0");best(["DL"],"1-4");
-  best(["MDF"],"2-2");best(["B2B"],"3-1");best(["MCR"],"3-3");
-  best(["EXT"],"5-0");best(["PL","F9"],"5-2");best(["EXT"],"5-4");
-  return {grid,ment:1,press:1,contra:0,posse:0};
+    if(bp){used.add(bp.pid);grid[zone]=bp;score+=bo;}};
+  def.forEach(([zone,roles])=>best(zone,roles));
+  return {grid,score};
+}
+function aiTactic(t){ // escolhe a formação que melhor encaixa no plantel
+  const AMB={"4-3-3":1.0,"4-4-2":1.0,"4-2-3-1":1.0,"3-5-2":1.0,"5-3-2":0.965}; // só evita excesso de blocos de 5 defesas
+  let bestG=null,bestS=-1,bestK="4-3-3";
+  for(const k in FORMATIONS){const r=fillFormation(t,FORMATIONS[k]);const sc=r.score*(AMB[k]||1);if(sc>bestS){bestS=sc;bestG=r.grid;bestK=k;}}
+  // instruções com ligeira personalidade conforme o equilíbrio do plantel
+  const eff=(p,r)=>effOvr(p,r);
+  const atkP=t.players.map(p=>eff(p,"PL")).sort((a,b)=>b-a).slice(0,3).reduce((s,v)=>s+v,0)/3;
+  const defP=t.players.map(p=>eff(p,"CEN")).sort((a,b)=>b-a).slice(0,3).reduce((s,v)=>s+v,0)/3;
+  let ment=1;if(atkP-defP>=4)ment=2;else if(defP-atkP>=7)ment=0;
+  // intensidade variável (determinística por equipa) — abre o jogo, evita liga monótona
+  const seed=(t.i*2654435761)>>>0;
+  let press=1;if(seed%100<32)press=2;else if(seed%100>=88)press=0;
+  return {grid:bestG,form:bestK,ment,press,contra:0,posse:0};
 }
 function lineup(t,T){ // [{p,role,zone,band}] — ignora placeholders vazios
   return Object.entries(T.grid).map(([k,g])=>{
