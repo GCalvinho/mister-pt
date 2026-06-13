@@ -129,6 +129,10 @@ table.tbl .tn{max-width:140px}
 .pgrid{position:absolute;inset:4% 3% 2% 3%;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr) .8fr;gap:2px}
 .pcell{border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative}
 .pcell.hl{background:rgba(255,184,28,.16);outline:2px dashed rgba(255,184,28,.7);outline-offset:-2px}
+.slot{width:54px;display:flex;flex-direction:column;align-items:center;gap:3px;opacity:.92}
+.slot .sdot{width:34px;height:34px;border-radius:50%;border:2px dashed rgba(255,255,255,.5);background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;line-height:1}
+.slot .srole{font-size:8px;color:var(--amber);font-weight:800;letter-spacing:.04em;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:6px}
+.pcell.hasslot{cursor:pointer}
 .pcell.gkcell{grid-column:2 / 5}
 .chip{width:54px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;touch-action:none;position:relative;z-index:3}
 .chip .cdot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;border:2px solid rgba(255,255,255,.75);box-shadow:0 3px 8px rgba(0,0,0,.45);text-shadow:0 1px 2px rgba(0,0,0,.6)}
@@ -836,7 +840,7 @@ let liveEdit=null;   // grelha temporária durante edição ao vivo
 function curTact(){return liveEdit||G.tactic}
 function retact(){if(liveEdit)renderLivePitch();else setTab("tactics")}
 function renderTactics(c){
-  const t=G.teams[G.my],T=G.tactic,inGrid=new Set(Object.values(T.grid).map(g=>g.pid));
+  const t=G.teams[G.my],T=G.tactic,inGrid=new Set(Object.values(T.grid).map(g=>g&&g.pid).filter(x=>x!=null));
   const benchPs=[...t.players].filter(p=>!inGrid.has(p.id)).sort((a,b)=>POSORD[a.pos]-POSORD[b.pos]||b.ovr-a.ovr);
   c.innerHTML=`
    <div class="pitch-wrap"><div class="pitch" id="pitch">
@@ -852,7 +856,7 @@ function renderTactics(c){
        (()=>{let h="";for(let r=5;r>=1;r--)for(let col=0;col<5;col++)h+=cellHTML(r,col,T,t);h+=cellHTML(0,2,T,t,"gkcell");return h})()
      }</div>
    </div></div>
-   <div class="sub" style="text-align:center;margin:6px 0 2px">Arrasta (ou toca para selecionar e toca na zona) · ${Object.keys(T.grid).length}/11</div>
+   <div class="sub" style="text-align:center;margin:6px 0 2px">Arrasta jogadores para as posições · ${Object.values(T.grid).filter(g=>g&&g.pid!=null).length}/11</div>
    <div class="bench" id="bench">${benchPs.map(p=>benchHTML(p)).join("")}</div>
    <div class="card"><h3>Instruções da tática</h3>
      <div class="kv"><span>Mentalidade</span><b>${["Defensiva","Equilibrada","Ofensiva"][T.ment]}</b></div>
@@ -879,10 +883,16 @@ function instrSheet(){
 function instrSet(k,v){instrTact()[k]=v;instrSheet();}
 function cellHTML(r,col,T,t,extra){
   const key=r+"-"+col,g=T.grid[key];
-  let inner="";
-  if(g){const p=t.players.find(x=>x.id===g.pid);
-    if(p)inner=chipHTML(p,g.role,key);else delete T.grid[key];}
-  return `<div class="pcell ${extra||""}" data-cell="${key}">${inner}</div>`;
+  let inner="",cls="";
+  if(g){const p=g.pid!=null&&t.players.find(x=>x.id===g.pid);
+    if(p)inner=chipHTML(p,g.role,key);
+    else{inner=emptySlotHTML(g.role,key);cls="hasslot";}}
+  return `<div class="pcell ${cls} ${extra||""}" data-cell="${key}">${inner}</div>`;
+}
+function emptySlotHTML(role,key){
+  return `<div class="slot" data-slot="${key}">
+   <div class="sdot">＋</div>
+   <div class="srole">${role}</div></div>`;
 }
 function chipHTML(p,role,key){
   const t=G.teams[G.my],eo=Math.round(effOvr(p,role));
@@ -936,7 +946,7 @@ function bindDnD(){
       if(cell)dropOnCell(p0,fc,cell.dataset.cell);
       else if(fc&&!pitchEl.contains(document.elementFromPoint(e.clientX,e.clientY))){
         if(liveEdit){retact();}
-        else{delete G.tactic.grid[fc];setTab("tactics");toast("Jogador retirado do onze");}}
+        else{if(G.tactic.grid[fc])G.tactic.grid[fc].pid=null;setTab("tactics");toast("Posição libertada — arrasta um jogador para a preencher");}}
       else retact();
     }else{ // toque
       if(fc){
@@ -959,7 +969,10 @@ function bindDnD(){
   document.addEventListener("pointerup",end);
   document.addEventListener("pointercancel",cancel);
   document.querySelectorAll(".pcell").forEach(c=>c.addEventListener("click",()=>{
-    if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,c.dataset.cell);}
+    const key=c.dataset.cell;
+    if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,key);return;}
+    const g=curTact().grid[key];
+    if(g&&g.pid==null)slotPicker(key); // bolinha vazia → escolher jogador
   }));
 }
 function dropOnCell(pid,from,to){
@@ -969,13 +982,15 @@ function dropOnCell(pid,from,to){
   if(r===0&&to!=="0-2")return;
   const occ=T.grid[to];
   if(occ&&occ.pid!==pid){ // troca
-    if(from){const tmp=occ;T.grid[to]={pid,role:tmp.role};T.grid[from]={pid:tmp.pid,role:T.grid[from].role};roleSheet(pid,to,from?null:undefined);return;}
-    else{const op=t.players.find(x=>x.id===occ.pid);delete T.grid[to];if(op)toast(op.n.split(" ").slice(-1)[0]+" sai para o banco");}
+    if(from){const tmp=occ;T.grid[to]={pid,role:T.grid[to].role};T.grid[from]={pid:tmp.pid,role:T.grid[from].role};retact();return;}
+    else{const op=t.players.find(x=>x.id===occ.pid);T.grid[to].pid=null;if(op)toast(op.n.split(" ").slice(-1)[0]+" volta ao banco — a posição fica livre");}
   }
-  if(from)delete T.grid[from];
-  if(!from&&Object.keys(T.grid).length>=11){toast("Já tens 11 jogadores. Retira um primeiro.");retact();return;}
-  T.grid[to]={pid,role:ZONE_ROLES(r,c)[0]};
-  roleSheet(pid,to);
+  if(from){if(T.grid[from])T.grid[from].pid=null;}
+  const filled=Object.values(T.grid).filter(g=>g&&g.pid!=null).length;
+  if(!from&&filled>=11){toast("Já tens 11 jogadores. Liberta uma posição primeiro.");retact();return;}
+  const keepRole=T.grid[to]&&T.grid[to].role;
+  T.grid[to]={pid,role:keepRole||ZONE_ROLES(r,c)[0]};
+  if(keepRole)retact();else roleSheet(pid,to);
 }
 function roleSheet(pid,cellKey){
   const [r,c]=cellKey.split("-").map(Number);
@@ -989,16 +1004,37 @@ function roleSheet(pid,cellKey){
        <div><b>${ROLES[role].n}</b><div class="sub">${role===p.nr?"Role natural":"Fora de posição"}</div></div>
        <div class="ovr ${ovrClass(eo)}" style="width:auto">${eo} <small style="color:${diff<0?"var(--red)":"var(--muted)"};font-size:10px">${diff<0?diff:""}</small></div></div>`;
    }).join("")+
-   (liveEdit?"":`<button class="btn danger" onclick="delete G.tactic.grid['${cellKey}'];closeSheet();setTab('tactics')">Retirar do onze</button>`));
+   (liveEdit?"":`<button class="btn danger" onclick="if(G.tactic.grid['${cellKey}'])G.tactic.grid['${cellKey}'].pid=null;closeSheet();setTab('tactics')">Libertar posição</button>`));
 }
+function slotPicker(key){
+  const T=curTact(),t=G.teams[G.my],g=T.grid[key];if(!g)return;
+  const role=g.role;
+  const inGrid=new Set(Object.values(T.grid).map(x=>x&&x.pid).filter(x=>x!=null));
+  const avail=t.players.filter(p=>!inGrid.has(p.id)&&!p.susp&&!p.inj)
+    .map(p=>({p,eo:Math.round(effOvr(p,role))})).sort((a,b)=>b.eo-a.eo);
+  const [r,c]=key.split("-").map(Number);
+  const band=r===0?"Baliza":r<=2?"Defesa":r<=4?"Meio-campo":"Ataque";
+  sheet(`<b style="font-size:16px">${ROLES[role].n}</b>
+   <div class="sub" style="margin-bottom:12px">${band}${c===0?" · esquerda":c===4?" · direita":c===2?" · centro":""} — escolhe quem ocupa esta posição</div>`+
+   (avail.length?avail.map(({p,eo})=>{
+     const diff=eo-p.ovr;
+     return `<div class="role-opt" onclick="fillSlot('${key}',${p.id})">
+       <div><b>${flag(p)} ${p.n}</b><div class="sub">${p.pos} · ${ROLE_SHORT[p.nr]||ROLES[p.nr].n} · ${p.age} anos${p.inj?" · 🤕":""}</div></div>
+       <div class="ovr ${ovrClass(eo)}" style="width:auto">${eo} <small style="color:${diff<0?"var(--red)":"var(--muted)"};font-size:10px">${diff<0?diff:""}</small></div></div>`;
+   }).join(""):`<div class="empty">Sem jogadores disponíveis para esta posição.</div>`)+
+   `<button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
+}
+function fillSlot(key,pid){const T=curTact();if(T.grid[key])T.grid[key].pid=pid;closeSheet();retact();}
 function setRole(pid,cell,role){curTact().grid[cell]={pid,role};closeSheet();retact()}
 function chipMenu(pid,cell){roleSheet(pid,cell)}
 function xiValid(){
   const T=G.tactic,keys=Object.keys(T.grid);
   const t=G.teams[G.my];
-  // remove suspensos
-  keys.forEach(k=>{const p=t.players.find(x=>x.id===T.grid[k].pid);if(!p||p.susp||p.inj)delete T.grid[k]});
-  return Object.keys(T.grid).length===11&&T.grid["0-2"];
+  // jogador indisponível liberta a posição (placeholder mantém-se)
+  keys.forEach(k=>{const g=T.grid[k];if(!g)return;if(g.pid!=null){const p=t.players.find(x=>x.id===g.pid);if(!p||p.susp||p.inj)g.pid=null;}});
+  const filled=Object.values(T.grid).filter(g=>g&&g.pid!=null).length;
+  const gkFilled=T.grid["0-2"]&&T.grid["0-2"].pid!=null;
+  return filled===11&&gkFilled;
 }
 </script>
 <script>
@@ -1015,8 +1051,9 @@ function aiTactic(t){ // tática automática para equipas IA
   best(["EXT"],"5-0");best(["PL","F9"],"5-2");best(["EXT"],"5-4");
   return {grid,ment:1,press:1,contra:0,posse:0};
 }
-function lineup(t,T){ // [{p,role,zone,band}]
+function lineup(t,T){ // [{p,role,zone,band}] — ignora placeholders vazios
   return Object.entries(T.grid).map(([k,g])=>{
+    if(!g||g.pid==null)return null;
     const p=t.players.find(x=>x.id===g.pid);
     const r=+k.split("-")[0];
     return p?{p,role:g.role,zone:k,band:BAND(r)}:null;
@@ -1729,7 +1766,7 @@ function acceptOffer(i){
   if(!p){o.dead=1;setTab("market");return}
   t.budget+=o.amt;buyer.budget=Math.max(0,buyer.budget-o.amt);
   t.players=t.players.filter(x=>x.id!==o.pid);
-  Object.keys(G.tactic.grid).forEach(k=>{if(G.tactic.grid[k].pid===o.pid)delete G.tactic.grid[k]});
+  Object.keys(G.tactic.grid).forEach(k=>{if(G.tactic.grid[k]&&G.tactic.grid[k].pid===o.pid)G.tactic.grid[k].pid=null});
   p.t=o.from;p.hist10=[];buyer.players.push(p);
   o.dead=1;
   pushNews("✈ Venda concluída",p.n+" deixa o clube rumo ao "+buyer.n+" por "+fmtM(o.amt)+".");
@@ -2219,7 +2256,7 @@ function renderGeral(c){
 <script>
 /* ============ DISPENSAS MANUAIS, REVISÃO DE FIM DE ÉPOCA, PROMOÇÃO COM TROCA ============ */
 const SQUAD_MAX=21;
-function cleanTactic(pid){if(G.tactic&&G.tactic.grid)for(const k in G.tactic.grid)if(G.tactic.grid[k].pid===pid)delete G.tactic.grid[k];}
+function cleanTactic(pid){if(G.tactic&&G.tactic.grid)for(const k in G.tactic.grid)if(G.tactic.grid[k]&&G.tactic.grid[k].pid===pid)G.tactic.grid[k].pid=null;}
 function doRelease(p){
   const t=G.teams[G.my];
   t.players=t.players.filter(x=>x.id!==p.id);
