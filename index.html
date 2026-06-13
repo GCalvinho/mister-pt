@@ -977,18 +977,37 @@ function bindDnD(){
 }
 function dropOnCell(pid,from,to){
   if(!to)return;
-  const T=curTact(),t=G.teams[G.my],p=t.players.find(x=>x.id===pid);
+  if(from===to){retact();return;} // largar no mesmo sítio
+  const T=curTact(),t=G.teams[G.my];
   const [r,c]=to.split("-").map(Number);
   if(r===0&&to!=="0-2")return;
   const occ=T.grid[to];
-  if(occ&&occ.pid!==pid){ // troca
-    if(from){const tmp=occ;T.grid[to]={pid,role:T.grid[to].role};T.grid[from]={pid:tmp.pid,role:T.grid[from].role};retact();return;}
-    else{const op=t.players.find(x=>x.id===occ.pid);T.grid[to].pid=null;if(op)toast(op.n.split(" ").slice(-1)[0]+" volta ao banco — a posição fica livre");}
+  const fromRole=from&&T.grid[from]?T.grid[from].role:null;
+
+  if(occ&&occ.pid!=null&&occ.pid!==pid){ // destino ocupado por OUTRO jogador → troca
+    const other=occ.pid;
+    T.grid[to]={pid,role:occ.role};
+    if(from)T.grid[from]={pid:other,role:fromRole};
+    else{const op=t.players.find(x=>x.id===other);if(op)toast(op.n.split(" ").slice(-1)[0]+" volta ao banco");}
+    retact();return;
   }
-  if(from){if(T.grid[from])T.grid[from].pid=null;}
+
+  // destino vazio: célula livre ou placeholder
+  if(from){
+    if(occ){ // destino é placeholder → trocam de estado: destino preenche, origem fica vazia
+      T.grid[to]={pid,role:occ.role};
+      T.grid[from]={pid:null,role:fromRole};
+    }else{ // destino é célula nova → a posição VIAJA (origem desaparece)
+      delete T.grid[from];
+      T.grid[to]={pid,role:fromRole||ZONE_ROLES(r,c)[0]};
+    }
+    retact();return;
+  }
+
+  // veio do banco para um destino vazio
   const filled=Object.values(T.grid).filter(g=>g&&g.pid!=null).length;
-  if(!from&&filled>=11){toast("Já tens 11 jogadores. Liberta uma posição primeiro.");retact();return;}
-  const keepRole=T.grid[to]&&T.grid[to].role;
+  if(filled>=11){toast("Já tens 11 jogadores. Liberta uma posição primeiro.");retact();return;}
+  const keepRole=occ&&occ.role;
   T.grid[to]={pid,role:keepRole||ZONE_ROLES(r,c)[0]};
   if(keepRole)retact();else roleSheet(pid,to);
 }
