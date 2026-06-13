@@ -774,11 +774,11 @@ function renderSquad(c){
    </tr></thead><tbody>
    ${ps.map(p=>`<tr onclick="playerSheet(${p.id})">
      <td style="text-align:center;width:44px"><div class="posb pos-${posGroup(p.pos)}" style="margin:0 auto">${p.pos}</div></td>
-     <td class="jc"><div class="pn">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
+     <td class="jc"><div class="pn" style="${p.inj?"color:var(--red)":""}">${flag(p)} ${p.n}${p.age<=23&&p.pot>=0.15?" <span style='color:var(--amber);font-size:11px'>★</span>":""}</div>
        <div class="ps">${ROLE_SHORT[p.nr]||ROLES[p.nr].n} · ${p.age} anos · ${fmtM(value(p))}</div></td>
      <td class="ovn ${ovrClass(p.ovr)}">${p.ovr}</td>
      <td class="fitn" style="color:${fitCol(p.sta)}">${Math.round(p.sta)}%</td>
-     <td style="text-align:center;font-size:12px;width:24px">${p.inj?"🤕":p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
+     <td style="text-align:center;font-size:12px;width:24px">${p.inj?"<span style='color:var(--red);font-size:10px;font-weight:800'>"+injDays(p)+"d</span>":p.susp?"🟥":p.listed?"🏷":"<span style='color:var(--ok)'>✓</span>"}</td>
    </tr>`).join("")}
    </tbody></table></div>`;
 }
@@ -809,7 +809,7 @@ function playerSheet(id){
    ${p.age<=23?`<div class="kv"><span>Potencial</span><b>${mine?potStars(p):'<span class="sub">?</span>'}</b></div>`:""}
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Salário</span><b>${fmtM(wage(p))}<span class="sub">/época</span></b></div>
-   ${p.inj?`<div class="kv"><span>Estado</span><b style="color:var(--red)">🤕 Lesionado · volta em ~${injDays(p)} dias</b></div>`:""}
+   ${p.inj?`<div class="kv"><span>Estado</span><b style="color:var(--red)">Lesionado · volta em ~${injDays(p)} dias</b></div>`:""}
    <div class="kv"><span>Forma (últ. 10 jogos da equipa)</span><b>${p.apps10} jogos</b></div>
    ${isFA?`<button class="btn" onclick="signFree(${p.id})">Contratar a custo zero</button>`:
      inAcad?(mine?`<button class="btn" onclick="promotePlayer(${p.id})">↑ Promover ao plantel</button>`:""):
@@ -899,14 +899,14 @@ function chipHTML(p,role,key){
   const t=G.teams[G.my],eo=Math.round(effOvr(p,role));
   return `<div class="chip" data-pid="${p.id}" data-cell="${key}">
    <div class="cdot" style="background:${t.c[0]};color:${t.c[1]}">${eo}</div>
-   <div class="cname" style="${p.inj?"color:var(--red)":""}">${p.n.split(" ").slice(-1)[0]}${p.inj?"🤕":p.susp?"🟥":""}</div>
+   <div class="cname" style="${p.inj?"color:var(--red)":""}">${p.n.split(" ").slice(-1)[0]}${p.inj?"":p.susp?"🟥":""}</div>
    <div class="crole">${role}</div></div>`;
 }
 function benchHTML(p){
   return `<div class="bchip" data-pid="${p.id}">
    <div class="posb pos-${posGroup(p.pos)}" style="width:32px;height:17px;font-size:9px;margin:0 auto 4px">${p.pos}</div>
-   <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b>${p.n.split(" ").slice(-1)[0]}</b>
-   <div class="sub" style="${p.inj?"color:var(--red);font-weight:800":""}">${p.inj?"🤕 "+injDays(p)+"d":Math.round(p.sta)+"%"+(p.susp?" 🟥":"")}</div></div>`;
+   <div class="bo ${ovrClass(p.ovr)}">${p.ovr}</div><b style="${p.inj?"color:var(--red)":""}">${p.n.split(" ").slice(-1)[0]}</b>
+   <div class="sub" style="${p.inj?"color:var(--red);font-weight:800":""}">${p.inj?injDays(p)+"d":Math.round(p.sta)+"%"+(p.susp?" 🟥":"")}</div></div>`;
 }
 /* Drag & drop por Pointer Events + fallback tap-tap */
 function bindDnD(){
@@ -1110,7 +1110,7 @@ function slotPicker(key){
    (avail.length?avail.map(({p,eo})=>{
      const diff=eo-p.ovr;
      return `<div class="role-opt" onclick="fillSlot('${key}',${p.id})">
-       <div><b>${flag(p)} ${p.n}</b><div class="sub">${p.pos} · ${ROLE_SHORT[p.nr]||ROLES[p.nr].n} · ${p.age} anos${p.inj?" · 🤕":""}</div></div>
+       <div><b>${flag(p)} ${p.n}</b><div class="sub">${p.pos} · ${ROLE_SHORT[p.nr]||ROLES[p.nr].n} · ${p.age} anos${p.inj?" · <span style='color:var(--red)'>lesionado</span>":""}</div></div>
        <div class="ovr ${ovrClass(eo)}" style="width:auto">${eo} <small style="color:${diff<0?"var(--red)":"var(--muted)"};font-size:10px">${diff<0?diff:""}</small></div></div>`;
    }).join(""):`<div class="empty">Sem jogadores disponíveis para esta posição.</div>`)+
    `<button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
@@ -2339,7 +2339,7 @@ function renderGeral(c){
    <div class="card"><div class="dash-t">Baixas</div>
     ${baixas.length?baixas.map(p=>`<div class="row" style="justify-content:space-between;padding:5px 0">
       <span style="font-size:13.5px">${flag(p)} ${p.n}</span>
-      ${p.inj?'<span style="font-size:12px;color:var(--red)">🤕 Lesionado · ~'+injDays(p)+'d</span>':p.susp?'<span style="font-size:12px;color:var(--red)">🟥 Suspenso</span>':'<span style="font-size:12px;color:var(--amber)">🔋 Cansado '+Math.round(p.sta)+'%</span>'}</div>`).join("")
+      ${p.inj?'<span style="font-size:12px;color:var(--red)">Lesionado · ~'+injDays(p)+'d</span>':p.susp?'<span style="font-size:12px;color:var(--red)">🟥 Suspenso</span>':'<span style="font-size:12px;color:var(--amber)">🔋 Cansado '+Math.round(p.sta)+'%</span>'}</div>`).join("")
      :'<p style="font-size:14px">Nenhuma baixa ✅</p>'}
    </div>`;
 }
@@ -2362,7 +2362,7 @@ function askRelease(id){
    <div class="kv" style="margin-top:10px"><span>Idade / Overall</span><b>${p.age} anos · ${p.ovr}</b></div>
    <div class="kv"><span>Valor de mercado</span><b>${fmtM(value(p))}</b></div>
    <div class="kv"><span>Salário</span><b>${fmtM(wage(p))}<span class="sub">/época</span></b></div>
-   ${p.inj?`<div class="kv"><span>Estado</span><b style="color:var(--red)">🤕 Lesionado · volta em ~${injDays(p)} dias</b></div>`:""}
+   ${p.inj?`<div class="kv"><span>Estado</span><b style="color:var(--red)">Lesionado · volta em ~${injDays(p)} dias</b></div>`:""}
    <p class="sub" style="margin:10px 0 4px">A rescisão é gratuita mas não recebes nada — se queres encaixe, coloca-o antes na lista de transferências. ${p.age<34&&p.ovr>=48?"Vai para a bolsa de Jogadores Livres (outro clube pode contratá-lo a custo zero).":"Termina a carreira."}</p>
    <button class="btn" style="background:var(--red)" onclick="confirmRelease(${id})">Confirmar dispensa</button>
    <button class="btn ghost" onclick="closeSheet()">Cancelar</button>`);
