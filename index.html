@@ -864,6 +864,8 @@ function renderTactics(c){
      <div class="kv"><span>Variantes</span><b>${[T.contra?"Contra-ataque":"",T.posse?"Posse curta":""].filter(Boolean).join(" · ")||"—"}</b></div>
      <button class="btn ghost" onclick="instrSheet()">⚙ Ajustar instruções</button>
      <button class="btn ghost" onclick="autoTactic();setTab('tactics');toast('Onze automático definido')">Onze automático (4-3-3)</button>
+     <button class="btn ghost" onclick="emptyAll()">Esvaziar onze (manter formação)</button>
+     <p class="sub" style="margin-top:8px;line-height:1.5">💡 Arrasta as bolinhas vazias para desenhar a formação · toca numa zona livre para criar uma posição · arrasta uma bolinha para fora do campo para a remover.</p>
    </div>`;
   bindDnD();
 }
@@ -909,22 +911,32 @@ function benchHTML(p){
 }
 /* Drag & drop por Pointer Events + fallback tap-tap */
 function bindDnD(){
-  let ghost=null,fromCell=null,pid=null,mode=null,sx=0,sy=0,lx=0;
+  let ghost=null,fromCell=null,pid=null,slotKey=null,mode=null,sx=0,sy=0,lx=0;
   const pitchEl=$("pitch");
-  const start=(e,el)=>{pid=+el.dataset.pid;fromCell=el.dataset.cell||null;mode=null;sx=e.clientX;sy=e.clientY;lx=e.clientX;};
+  const start=(e,el)=>{
+    if(el.dataset.slot!=null&&el.dataset.pid==null){slotKey=el.dataset.slot;pid=null;fromCell=null;}
+    else{pid=+el.dataset.pid;fromCell=el.dataset.cell||null;slotKey=null;}
+    mode=null;sx=e.clientX;sy=e.clientY;lx=e.clientX;};
   const mkGhost=()=>{
-    const p=G.teams[G.my].players.find(x=>x.id===pid);
     ghost=document.createElement("div");ghost.className="drag-ghost";
-    ghost.innerHTML=chipHTML(p,fromCell&&curTact().grid[fromCell]?curTact().grid[fromCell].role:p.nr,"");
-    document.body.appendChild(ghost);
-    document.querySelector(`[data-pid="${pid}"]`)?.classList.add("dragging");
+    if(slotKey!=null){
+      const g=curTact().grid[slotKey];
+      ghost.innerHTML=emptySlotHTML(g?g.role:"",slotKey);
+      document.body.appendChild(ghost);
+      document.querySelector(`[data-slot="${slotKey}"]`)?.classList.add("dragging");
+    }else{
+      const p=G.teams[G.my].players.find(x=>x.id===pid);
+      ghost.innerHTML=chipHTML(p,fromCell&&curTact().grid[fromCell]?curTact().grid[fromCell].role:p.nr,"");
+      document.body.appendChild(ghost);
+      document.querySelector(`[data-pid="${pid}"]`)?.classList.add("dragging");
+    }
   };
   const move=e=>{
-    if(pid==null)return;
+    if(pid==null&&slotKey==null)return;
     const dx=e.clientX-sx,dy=e.clientY-sy;
     if(!mode){
       if(Math.hypot(dx,dy)<8)return;
-      if(!fromCell&&Math.abs(dx)>Math.abs(dy)*1.2)mode="scroll"; // gesto horizontal no banco = scroll
+      if(slotKey==null&&!fromCell&&Math.abs(dx)>Math.abs(dy)*1.2)mode="scroll"; // gesto horizontal no banco = scroll
       else{mode="drag";mkGhost();}
     }
     if(mode==="scroll"){const b=$("bench");if(b)b.scrollLeft-=(e.clientX-lx);lx=e.clientX;return;}
@@ -934,11 +946,23 @@ function bindDnD(){
     if(cell)cell.classList.add("hl");
   };
   const end=e=>{
-    if(pid==null)return;
+    if(pid==null&&slotKey==null)return;
     const wasDrag=mode==="drag",wasScroll=mode==="scroll";
     const cell=document.elementFromPoint(e.clientX,e.clientY)?.closest(".pcell");
     ghost&&ghost.remove();ghost=null;
     document.querySelectorAll(".pcell").forEach(c=>c.classList.remove("hl"));
+    if(slotKey!=null){ // arrastar/tocar num placeholder vazio
+      const sk=slotKey;slotKey=null;mode=null;
+      if(wasDrag){
+        if(cell)moveSlot(sk,cell.dataset.cell);
+        else if(!pitchEl.contains(document.elementFromPoint(e.clientX,e.clientY)))removeSlot(sk);
+        else retact();
+      }else{ // toque
+        if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,sk);}
+        else slotPicker(sk);
+      }
+      return;
+    }
     const fc=fromCell,p0=pid;
     pid=null;fromCell=null;mode=null;
     if(wasScroll)return;
@@ -959,8 +983,8 @@ function bindDnD(){
       }
     }
   };
-  const cancel=()=>{ghost&&ghost.remove();ghost=null;document.querySelectorAll(".pcell").forEach(c=>c.classList.remove("hl"));pid=null;fromCell=null;mode=null;};
-  document.querySelectorAll(".chip,[data-pid].bchip").forEach(el=>{
+  const cancel=()=>{ghost&&ghost.remove();ghost=null;document.querySelectorAll(".pcell").forEach(c=>c.classList.remove("hl"));pid=null;slotKey=null;fromCell=null;mode=null;};
+  document.querySelectorAll(".chip,[data-pid].bchip,.slot").forEach(el=>{
     el.addEventListener("pointerdown",e=>{e.preventDefault();start(e,el)});
   });
   window._dnd&&(document.removeEventListener("pointermove",window._dnd.m),document.removeEventListener("pointerup",window._dnd.u),document.removeEventListener("pointercancel",window._dnd.c));
@@ -972,7 +996,13 @@ function bindDnD(){
     const key=c.dataset.cell;
     if(dragSel!=null){const s=dragSel;dragSel=null;dropOnCell(s,null,key);return;}
     const g=curTact().grid[key];
-    if(g&&g.pid==null)slotPicker(key); // bolinha vazia → escolher jogador
+    if(!g&&!liveEdit){ // célula vazia → criar uma nova posição (placeholder)
+      const [r,cc]=key.split("-").map(Number);
+      if(r===0&&key!=="0-2")return;
+      if(Object.keys(curTact().grid).length>=11){toast("Já tens 11 posições. Remove uma (arrasta para fora) antes de criar outra.");return;}
+      curTact().grid[key]={pid:null,role:ZONE_ROLES(r,cc)[0]};
+      retact();
+    }
   }));
 }
 function dropOnCell(pid,from,to){
@@ -1024,6 +1054,26 @@ function roleSheet(pid,cellKey){
        <div class="ovr ${ovrClass(eo)}" style="width:auto">${eo} <small style="color:${diff<0?"var(--red)":"var(--muted)"};font-size:10px">${diff<0?diff:""}</small></div></div>`;
    }).join("")+
    (liveEdit?"":`<button class="btn danger" onclick="if(G.tactic.grid['${cellKey}'])G.tactic.grid['${cellKey}'].pid=null;closeSheet();setTab('tactics')">Libertar posição</button>`));
+}
+function moveSlot(from,to){
+  if(!to||from===to){retact();return;}
+  const T=curTact(),g=T.grid[from];if(!g)return;
+  const [r,c]=to.split("-").map(Number);
+  if(from==="0-2"){toast("O guarda-redes fica na baliza");retact();return;}
+  if(to==="0-2"){toast("Só o guarda-redes ocupa a baliza");retact();return;}
+  if(r===0)return;
+  const occ=T.grid[to];
+  if(occ){const tmp=T.grid[to];T.grid[to]=g;T.grid[from]=tmp;} // troca de células
+  else{delete T.grid[from];T.grid[to]={pid:g.pid,role:g.pid==null?ZONE_ROLES(r,c)[0]:g.role};} // viaja
+  retact();
+}
+function removeSlot(key){
+  if(key==="0-2"){toast("A baliza tem de existir");retact();return;}
+  delete curTact().grid[key];toast("Posição removida");retact();
+}
+function emptyAll(){
+  const T=G.tactic;for(const k in T.grid)T.grid[k].pid=null;
+  setTab("tactics");toast("Onze esvaziado — desenha a formação e atribui jogadores");
 }
 function slotPicker(key){
   const T=curTact(),t=G.teams[G.my],g=T.grid[key];if(!g)return;
