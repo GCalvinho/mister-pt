@@ -32,7 +32,7 @@ const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObje
   --sab:env(safe-area-inset-bottom,0px);
 }
 *{margin:0;padding:0;box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;height:100dvh;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--pitch)}
+html,body{height:100%;height:100dvh;margin:0;overflow:hidden;overscroll-behavior:none;background:#0a2017}
 body{
   background:var(--pitch);color:var(--chalk);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -62,7 +62,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .content.nonav{padding-bottom:calc(var(--sab) + 24px)}
 
 /* ===== Navegação inferior ===== */
-.tabbar{flex:0 0 auto;height:calc(var(--nav-h) + var(--sab));padding-bottom:var(--sab);display:flex;background:#0a2017;border-top:1px solid var(--line);z-index:40}
+.tabbar{flex:0 0 auto;height:calc(var(--nav-h) + var(--sab));padding-bottom:var(--sab);display:flex;background:#0a2017;border-top:1px solid var(--line);z-index:40;box-shadow:0 var(--sab) 0 #0a2017}
 .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:9px;font-weight:600;position:relative}
 .tabbar button .ic{font-size:15px;line-height:1}
 .dash-t{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;letter-spacing:.16em;color:var(--amber);font-weight:800;margin-bottom:10px;text-transform:uppercase}
