@@ -48,7 +48,7 @@ input,select{font:inherit;color:var(--chalk);background:var(--card2);border:1px 
 select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238FAE9C' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 
 /* ===== Estrutura de ecrãs ===== */
-.screen{display:none;position:fixed;top:0;left:0;right:0;height:var(--app-h,100dvh);flex-direction:column;background:var(--pitch)}
+.screen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;height:var(--app-h,100dvh);flex-direction:column;background:var(--pitch)}
 .screen.on{display:flex}
 .appbar{padding:calc(var(--sat) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d2a1f,var(--pitch))}
 .appbar .club-strip{width:5px;align-self:stretch;border-radius:3px}
@@ -58,11 +58,11 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .appbar .money{font-size:12.5px;color:var(--amber);font-weight:700;white-space:nowrap}
 .icon-btn{width:38px;height:38px;border-radius:10px;background:var(--card2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
 .badge-dot{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--red)}
-.content{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 18px}
+.content{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(var(--nav-h) + var(--sab) + 18px)}
 .content.nonav{padding-bottom:calc(var(--sab) + 24px)}
 
 /* ===== Navegação inferior ===== */
-.tabbar{flex:0 0 auto;height:calc(var(--nav-h) + var(--sab));padding-bottom:var(--sab);display:flex;background:#0a2017;border-top:1px solid var(--line);z-index:40;box-shadow:0 var(--sab) 0 #0a2017}
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + var(--sab));padding-bottom:var(--sab);display:flex;background:#0a2017;border-top:1px solid var(--line);z-index:40}
 .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:9px;font-weight:600;position:relative}
 .tabbar button .ic{font-size:15px;line-height:1}
 .dash-t{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;letter-spacing:.16em;color:var(--amber);font-weight:800;margin-bottom:10px;text-transform:uppercase}
@@ -797,7 +797,8 @@ $("btn-menu").onclick=()=>{
   sheet(`<h3 style="margin-bottom:10px">Menu</h3>
    <button class="btn ghost" onclick="closeSheet();showInbox()">📥 Caixa de entrada ${G.inbox.some(m=>m.unread)?"•":""}</button>
    <button class="btn ghost" onclick="saveGame();toast('Carreira gravada');closeSheet()">💾 Gravar carreira</button>
-   <button class="btn ghost" onclick="saveGame();closeSheet();show('scr-home');renderHome()">🚪 Gravar e sair</button>`);
+   <button class="btn ghost" onclick="saveGame();closeSheet();show('scr-home');renderHome()">🚪 Gravar e sair</button>
+   <p class="sub" style="text-align:center;margin-top:12px;opacity:.6">Míster PT · build ${APP_BUILD}</p>`);
 };
 function showInbox(){
   G.inbox.forEach(m=>m.unread=0);refreshHeader();
@@ -1880,6 +1881,7 @@ function scorersHTML(){
 /* =================== MERCADO =================== */
 let mktPos="",mktQ="",mktRole="",mktAge=0,mktFree=0,mktPage=0;
 let clubeView="academia";
+const APP_BUILD="2026.06.13";
 let tacInstrOpen=false;
 const GROUP_ROLES={GR:["GR"],D:["DL","CEN"],M:["MDF","B2B","MCR"],A:["EXT","PL"]};
 function maskIdx(p){ // atributos escondidos para jogadores que não são meus (estável por id)
