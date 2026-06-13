@@ -1063,10 +1063,33 @@ function moveSlot(from,to){
   if(to==="0-2"){toast("Só o guarda-redes ocupa a baliza");retact();return;}
   if(r===0)return;
   const occ=T.grid[to];
-  if(occ){const tmp=T.grid[to];T.grid[to]=g;T.grid[from]=tmp;} // troca de células
-  else{delete T.grid[from];T.grid[to]={pid:g.pid,role:g.pid==null?ZONE_ROLES(r,c)[0]:g.role};} // viaja
+  if(occ){const tmp=T.grid[to];T.grid[to]=g;T.grid[from]=tmp;retact();return;} // troca de células
+  // viaja para célula vazia
+  delete T.grid[from];
+  const roles=ZONE_ROLES(r,c);
+  if(g.pid==null&&roles.length>1){ // bolinha vazia numa zona com várias opções → perguntar o role
+    T.grid[to]={pid:null,role:roles[0]};
+    retact();
+    slotRolePicker(to);
+    return;
+  }
+  T.grid[to]={pid:g.pid,role:g.pid==null?roles[0]:g.role};
   retact();
 }
+function slotRolePicker(key){
+  const T=curTact(),g=T.grid[key];if(!g)return;
+  const [r,c]=key.split("-").map(Number);
+  const roles=ZONE_ROLES(r,c);
+  const band=r<=2?"Defesa":r<=4?"Meio-campo":"Ataque";
+  const sideTxt=c===0?" · esquerda":c===4?" · direita":c===2?" · centro":"";
+  sheet(`<b style="font-size:16px">Que função nesta posição?</b>
+   <div class="sub" style="margin-bottom:12px">${band}${sideTxt} — escolhe o role da posição</div>`+
+   roles.map(role=>`<div class="role-opt" onclick="setSlotRole('${key}','${role}')">
+     <div><b>${ROLES[role].n}</b><div class="sub">${ROLE_SHORT[role]||role}</div></div>
+     <div class="ovr o-med" style="width:auto">${role}</div></div>`).join("")+
+   `<button class="btn ghost" onclick="closeSheet()">Manter ${ROLES[g.role].n}</button>`);
+}
+function setSlotRole(key,role){const T=curTact();if(T.grid[key])T.grid[key].role=role;closeSheet();retact();}
 function removeSlot(key){
   if(key==="0-2"){toast("A baliza tem de existir");retact();return;}
   delete curTact().grid[key];toast("Posição removida");retact();
