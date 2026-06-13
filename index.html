@@ -1860,6 +1860,7 @@ function scorersHTML(){
 
 /* =================== MERCADO =================== */
 let mktPos="",mktQ="",mktRole="",mktAge=0,mktFree=0,mktPage=0;
+let clubeView="academia";
 const GROUP_ROLES={GR:["GR"],D:["DL","CEN"],M:["MDF","B2B","MCR"],A:["EXT","PL"]};
 function maskIdx(p){ // atributos escondidos para jogadores que não são meus (estável por id)
   const n=2+(p.id%2);let s=(p.id*2654435761)>>>0;const arr=[0,1,2,3,4],out=[];
@@ -1876,7 +1877,7 @@ function renderMarket(c){
   const filtered=pool
     .filter(p=>(!mktPos||posGroup(p.pos)===mktPos)&&(!mktRole||p.nr===mktRole)&&(!mktQ||p.n.toLowerCase().includes(mktQ))&&(!mktAge||p.age<=mktAge))
     .sort((a,b)=>b.ovr-a.ovr);
-  const PER=15,pages=Math.max(1,Math.ceil(filtered.length/PER));
+  const PER=6,pages=Math.max(1,Math.ceil(filtered.length/PER));
   mktPage=clamp(mktPage,0,pages-1);
   const all=filtered.slice(mktPage*PER,(mktPage+1)*PER);
   c.innerHTML=`
@@ -2210,41 +2211,54 @@ function renderClube(c){
   const rev=G.revenue||(G.revenue={season:{tickets:0,ads:0,total:0},lastAdMonth:-1});
   const allAcad=[...acad.players].sort((a,b)=>b.age-a.age||b.pot-a.pot);
   const fmtSeason=s=>s+"/"+String((s+1)%100).padStart(2,"0");
-  c.innerHTML=`
-   <div class="card">
-    <h3>🎓 Academia · Nível ${acad.level}/5${acad.building?" · 🚧 obras até "+fmtSeason(acad.building.done):""}</h3>
-    <p class="sub" style="margin-bottom:8px">Vagas: ${acad.players.length}/12 · os jovens desenvolvem-se até aos 21 anos — depois saem para a bolsa de Jogadores Livres.</p>
-    ${!allAcad.length?'<div class="empty">Sem jogadores na academia. Chegam novos no final da época.</div>':
-     allAcad.map(p=>`<div class="list-item">
-      <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
-      <div class="grow" onclick="playerSheet(${p.id})" style="cursor:pointer">
-        <b style="font-size:13px">${p.n}${p.age>=20?' <span style="color:var(--amber);font-size:10px">⏳ último ano</span>':""}</b>
-        <div class="row" style="gap:6px;margin-top:2px">
-          <span class="sub">${p.age} anos · OVR ${p.ovr}</span>
-          <span>${potStars(p)}</span>
-        </div>
-      </div>
-      <button class="btn sm" onclick="promotePlayer(${p.id})">↑ Promover</button>
-     </div>`).join("")}
-    ${acad.building?'<p class="sub" style="text-align:center;margin-top:8px">🚧 Obras em curso — conclusão em '+fmtSeason(acad.building.done)+'</p>':
-     acad.level<5?`<button class="btn ghost" style="margin-top:6px" onclick="upgradeAcademy()">Melhorar academia → Nível ${acad.level+1} · ${fmtM(ACAD_COSTS[acad.level-1])}</button>`:
-     '<p class="sub" style="text-align:center;margin-top:8px">Academia no nível máximo 🎓</p>'}
-   </div>
-   <div class="card">
-    <h3>🏟 ${t.st} · Nível ${stad.level}/4${stad.building?" · 🚧 obras até "+fmtSeason(stad.building.done):""}</h3>
-    <div class="kv"><span>Capacidade</span><b>${stad.cap.toLocaleString("pt-PT")} adeptos${stad.building?' <span class="sub">→ '+stad.building.cap.toLocaleString("pt-PT")+'</span>':""}</b></div>
-    <div style="background:var(--card2);border-radius:10px;padding:10px;margin:10px 0">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px">Receitas esta época</div>
-      <div class="kv" style="padding:4px 0"><span style="font-size:13px">🎟 Bilheteira</span><b style="color:var(--ok)">${fmtM(rev.season.tickets)}</b></div>
-      <div class="kv" style="padding:4px 0"><span style="font-size:13px">📡 Publicidade</span><b style="color:var(--ok)">${fmtM(rev.season.ads)}</b></div>
-      <div class="kv" style="padding:4px 0"><span style="font-size:13px">📺 Direitos TV</span><b style="color:var(--ok)">${fmtM(rev.season.tv||0)}</b></div>
-      <div class="kv" style="padding:4px 0"><span style="font-size:13px">💸 Salários (${fmtM(teamWages(t))}/época)</span><b style="color:var(--red)">−${fmtM(rev.season.wages||0)}</b></div>
-      <div class="kv" style="padding:4px 0;border-top:1px solid var(--line);margin-top:4px"><span style="font-size:13px;font-weight:800">Resultado líquido</span><b style="color:${rev.season.total>=0?"var(--amber)":"var(--red)"};font-size:16px">${fmtM(rev.season.total)}</b></div>
-    </div>
-    ${stad.building?'<p class="sub" style="text-align:center">🚧 Expansão em curso — conclusão em '+fmtSeason(stad.building.done)+'</p>':
-     stad.level<4?`<button class="btn ghost" onclick="upgradeStadium()">Expandir → ${Math.round(stad.cap*STAD_MULTS[stad.level-1]).toLocaleString("pt-PT")} lugares · ${fmtM(stadUpgradeCost(t))}</button>`:
-    '<p class="sub" style="text-align:center">Estádio ao máximo 🏟</p>'}
+  const seg=`<div class="seg" style="margin-bottom:10px">
+    <button class="${clubeView==="academia"?"on":""}" onclick="clubeView='academia';setTab('clube')">🎓 Academia</button>
+    <button class="${clubeView==="estadio"?"on":""}" onclick="clubeView='estadio';setTab('clube')">🏟 Estádio</button>
+    <button class="${clubeView==="financas"?"on":""}" onclick="clubeView='financas';setTab('clube')">💶 Finanças</button>
    </div>`;
+  let body="";
+  if(clubeView==="academia"){
+    body=`<div class="card">
+     <h3>🎓 Academia · Nível ${acad.level}/5${acad.building?" · 🚧 obras até "+fmtSeason(acad.building.done):""}</h3>
+     <p class="sub" style="margin-bottom:8px">Vagas: ${acad.players.length}/12 · os jovens desenvolvem-se até aos 21 anos, depois saem para a bolsa de Livres.</p>
+     ${!allAcad.length?'<div class="empty">Sem jogadores na academia. Chegam novos no final da época.</div>':
+      allAcad.map(p=>`<div class="list-item">
+       <div class="posb pos-${posGroup(p.pos)}">${p.pos}</div>
+       <div class="grow" onclick="playerSheet(${p.id})" style="cursor:pointer">
+         <b style="font-size:13px">${p.n}${p.age>=20?' <span style="color:var(--amber);font-size:10px">⏳ último ano</span>':""}</b>
+         <div class="row" style="gap:6px;margin-top:2px"><span class="sub">${p.age} anos · OVR ${p.ovr}</span><span>${potStars(p)}</span></div>
+       </div>
+       <button class="btn sm" onclick="promotePlayer(${p.id})">↑ Promover</button>
+      </div>`).join("")}
+     ${acad.building?'<p class="sub" style="text-align:center;margin-top:8px">🚧 Obras em curso — conclusão em '+fmtSeason(acad.building.done)+'</p>':
+      acad.level<5?`<button class="btn ghost" style="margin-top:6px" onclick="upgradeAcademy()">Melhorar academia → Nível ${acad.level+1} · ${fmtM(ACAD_COSTS[acad.level-1])}</button>`:
+      '<p class="sub" style="text-align:center;margin-top:8px">Academia no nível máximo 🎓</p>'}
+    </div>`;
+  } else if(clubeView==="estadio"){
+    body=`<div class="card">
+     <h3>🏟 ${t.st} · Nível ${stad.level}/4${stad.building?" · 🚧 obras até "+fmtSeason(stad.building.done):""}</h3>
+     <div class="kv"><span>Capacidade</span><b>${stad.cap.toLocaleString("pt-PT")} adeptos${stad.building?' <span class="sub">→ '+stad.building.cap.toLocaleString("pt-PT")+'</span>':""}</b></div>
+     <div class="kv"><span>Nível do estádio</span><b>${stad.level}/4</b></div>
+     <p class="sub" style="margin:10px 0">Um estádio maior aumenta a receita de bilheteira em cada jogo em casa.</p>
+     ${stad.building?'<p class="sub" style="text-align:center">🚧 Expansão em curso — conclusão em '+fmtSeason(stad.building.done)+'</p>':
+      stad.level<4?`<button class="btn ghost" onclick="upgradeStadium()">Expandir → ${Math.round(stad.cap*STAD_MULTS[stad.level-1]).toLocaleString("pt-PT")} lugares · ${fmtM(stadUpgradeCost(t))}</button>`:
+     '<p class="sub" style="text-align:center">Estádio ao máximo 🏟</p>'}
+    </div>`;
+  } else {
+    body=`<div class="card">
+     <h3>💶 Finanças · Época ${fmtSeason(G.season)}</h3>
+     <div class="kv"><span>Orçamento disponível</span><b style="color:var(--amber)">${fmtM(t.budget)}</b></div>
+     <div style="background:var(--card2);border-radius:10px;padding:12px;margin:12px 0">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px">Receitas e despesas esta época</div>
+      <div class="kv" style="padding:5px 0"><span style="font-size:13px">🎟 Bilheteira</span><b style="color:var(--ok)">${fmtM(rev.season.tickets)}</b></div>
+      <div class="kv" style="padding:5px 0"><span style="font-size:13px">📡 Publicidade</span><b style="color:var(--ok)">${fmtM(rev.season.ads)}</b></div>
+      <div class="kv" style="padding:5px 0"><span style="font-size:13px">📺 Direitos TV</span><b style="color:var(--ok)">${fmtM(rev.season.tv||0)}</b></div>
+      <div class="kv" style="padding:5px 0"><span style="font-size:13px">💸 Salários (${fmtM(teamWages(t))}/época)</span><b style="color:var(--red)">−${fmtM(rev.season.wages||0)}</b></div>
+      <div class="kv" style="padding:5px 0;border-top:1px solid var(--line);margin-top:4px"><span style="font-size:13px;font-weight:800">Resultado líquido</span><b style="color:${rev.season.total>=0?"var(--amber)":"var(--red)"};font-size:17px">${fmtM(rev.season.total)}</b></div>
+     </div>
+    </div>`;
+  }
+  c.innerHTML=seg+body;
 }
 </script>
 <script>
@@ -2466,7 +2480,7 @@ function renderGeral(c){
    </div>
    <div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><div class="dash-t">Mensagens</div>
      <span class="sub" style="cursor:pointer" onclick="showInbox()">Ver todas ›</span></div>
-    ${G.inbox.length?G.inbox.slice(0,3).map(m=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)" onclick="showInbox()">
+    ${G.inbox.length?G.inbox.slice(0,2).map(m=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)" onclick="showInbox()">
       <div style="font-size:13.5px">${m.t}</div><div class="sub mono" style="font-size:10.5px;margin-top:2px">${dstr(m.d)}</div></div>`).join(""):'<p class="sub">Sem mensagens.</p>'}
    </div>
    <div class="card"><div class="dash-t">Baixas</div>
