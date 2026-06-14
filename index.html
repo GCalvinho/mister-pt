@@ -1432,9 +1432,58 @@ function doSub(team,XI,outX,inP){
 function endMatch(){
   M.done=true;clearTimeout(tickT);
   addLine("info","FINAL DO JOGO! "+M.th.n+" "+M.gh+"–"+M.ga+" "+M.ta.n);
-  if(M.interactive){$("m-done").style.display="block";$("m-ht").style.display="none";$("m-kick").style.display="none";$("m-tactics").style.display="none";updScore();}
   // limpa amarelos de jogo
   [...M.th.players,...M.ta.players].forEach(p=>delete p.yel);
+  if(M.interactive){
+    if(M.cup&&M.gh===M.ga){startShootout();return;}
+    showMatchEndBtns();
+  }
+}
+function showMatchEndBtns(){
+  $("m-done").style.display="block";$("m-ht").style.display="none";$("m-kick").style.display="none";$("m-tactics").style.display="none";updScore();
+}
+function penProb(team){return clamp(0.72+((team.base||72)-72)/220,0.60,0.85);}
+function startShootout(){
+  const ord=xi=>xi.slice().sort((a,b)=>b.p.ovr-a.p.ovr).map(x=>x.p);
+  M.pen={h:0,a:0,hk:0,ak:0,hist:[],sh:ord(M.xh),sa:ord(M.xa)};
+  $("m-done").style.display="none";$("m-ht").style.display="none";$("m-tactics").style.display="none";
+  addLine("info","⚽ Empate a "+M.gh+"! O vencedor decide-se nas grandes penalidades.");
+  $("m-clock").textContent="GP 0-0";
+  tickT=setTimeout(shootKick,1000);
+}
+function shootDecided(P){
+  const hk=P.hk,ak=P.ak,h=P.h,a=P.a;
+  if(hk<5||ak<5){
+    const rh=Math.max(0,5-hk),ra=Math.max(0,5-ak);
+    if(h>a+ra)return true;
+    if(a>h+rh)return true;
+    return false;
+  }
+  return hk===ak&&h!==a;
+}
+function shootKick(){
+  const P=M.pen;
+  const homeKick=(P.hist.length%2===0);
+  const team=homeKick?M.th:M.ta;
+  const shooters=homeKick?P.sh:P.sa;
+  const idx=homeKick?P.hk:P.ak;
+  const shooter=shooters[idx%shooters.length];
+  const scored=Math.random()<penProb(team);
+  if(homeKick){P.hk++;if(scored)P.h++;}else{P.ak++;if(scored)P.a++;}
+  P.hist.push({home:homeKick,scored});
+  const nm=shooter?shooter.n.split(" ").slice(-1)[0]:team.n;
+  addLine(homeKick?"home":"away",(scored?"⚽ Marca! ":"❌ Falha! ")+nm+" ("+team.s+")",null);
+  evPush(homeKick,scored?"⚽":"❌",nm,null);
+  $("m-clock").textContent="GP "+P.h+"-"+P.a;
+  if(shootDecided(P)){tickT=setTimeout(finishShootout,1200);return;}
+  tickT=setTimeout(shootKick,950);
+}
+function finishShootout(){
+  const P=M.pen;const homeWin=P.h>P.a;
+  M.penWin=homeWin?M.fx.h:M.fx.a;M.penScore=[P.h,P.a];
+  const winName=(homeWin?M.th:M.ta).n;
+  addLine("info","🏆 "+winName+" vence nas grandes penalidades por "+P.h+"-"+P.a+"!");
+  showMatchEndBtns();
 }
 /* Controlos */
 $("m-kick").onclick=()=>{
@@ -1625,7 +1674,7 @@ function kickoff(interactive){
   const mine=fxs.find(f=>f.h===G.my||f.a===G.my);
   // reduz suspensões dos meus jogos
   if(mine)G.teams[G.my].players.forEach(p=>{if(p.susp)p.susp--});
-  if(mine&&interactive){mine.c=mine.c||md.cup;mine.rd=md.rd;playMatch(mine,1);return}
+  if(mine&&interactive){mine.c=mine.c||md.cup;mine.rd=md.rd;playMatch(mine,1);M.cup=md.cup||null;return}
   if(mine){const r=playMatch(mine,0);applyResult(mine,r,md);}
   finishDay(md,mine);
 }
@@ -1640,8 +1689,9 @@ function applyResult(fx,r,md){
   if(!md.cup){
     upd(fx.h,r.gh,r.ga);upd(fx.a,r.ga,r.gh);
   } else {
-    let win=r.gh>r.ga?fx.h:r.ga>r.gh?fx.a:(Math.random()<0.52?fx.h:fx.a); // penáltis
+    let win=r.gh>r.ga?fx.h:r.ga>r.gh?fx.a:(r.penWin!=null?r.penWin:(Math.random()<0.52?fx.h:fx.a)); // penáltis
     fx.pens=r.gh===r.ga;fx.win=win;
+    if(r.penScore)fx.penScore=r.penScore.slice();
     const cup=G.cups[md.cup];
     cup.alive=cup.alive.filter(t=>t!==(win===fx.h?fx.a:fx.h));
   }
