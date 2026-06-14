@@ -1035,7 +1035,13 @@ function bindDnD(){
     pid=null;fromCell=null;mode=null;
     if(wasScroll)return;
     if(wasDrag){
-      if(cell)dropOrSub(p0,fc,cell.dataset.cell);
+      const tgt=document.elementFromPoint(e.clientX,e.clientY);
+      const benchChip=tgt&&tgt.closest?tgt.closest("[data-pid]"):null;
+      const onBench=benchChip&&benchChip.closest&&benchChip.closest(".bench");
+      if(liveEdit&&fc&&onBench){ // arrastar um titular para cima de um suplente no banco = substituição
+        liveSubDrag(+benchChip.dataset.pid,fc);
+      }
+      else if(cell)dropOrSub(p0,fc,cell.dataset.cell);
       else if(fc&&!pitchEl.contains(document.elementFromPoint(e.clientX,e.clientY))){
         if(liveEdit){retact();}
         else{if(G.tactic.grid[fc])G.tactic.grid[fc].pid=null;setTab("tactics");toast("Posição libertada — arrasta um jogador para a preencher");}}
