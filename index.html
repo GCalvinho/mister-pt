@@ -214,6 +214,8 @@ table.tbl .tn{max-width:140px}
 .role-opt:active{border-color:var(--amber)}
 .role-opt b{font-size:14px}
 .seg{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:6px 0}
+.seg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.seg-scroll button{flex:1 0 auto;white-space:nowrap;min-width:max-content;padding-left:12px;padding-right:12px}
 .seg button{flex:1;padding:9px 4px;font-size:12px;font-weight:700;color:var(--muted)}
 .seg button.on{background:var(--amber);color:#1d1503}
 .kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
@@ -277,10 +279,7 @@ table.tbl .tn{max-width:140px}
       </div>
     </div>
     <div id="pick-step2" style="display:none">
-      <div class="seg" id="pick-div-seg">
-        <button class="on" data-d="1">Liga Portugal</button>
-        <button data-d="2">Liga Portugal 2</button>
-      </div>
+      <div class="seg seg-scroll" id="pick-div-seg"></div>
       <div class="club-grid" id="pick-grid"></div>
     </div>
   </div>
@@ -509,7 +508,28 @@ const TEAMS_RAW=[
 {n:"Portimonense SC",s:"POR",d:2,c:["#231F20","#FFFFFF"],st:"Estádio Municipal de Portimão",base:52,bud:0.5,cap:12,acad:1,p:[
 ["Kosuke Nakamura","GR",30,55],["João Reis","DE",28,52],["Tamble Monteiro","PL",25,54]]},
 {n:"UD Oliveirense",s:"OLI",d:2,c:["#C8102E","#FFFFFF"],st:"Estádio Carlos Osório",base:49,bud:0.4,cap:3,acad:1,p:[
-["Kennedy","GR",27,52],["Filipe Alves","MC",33,52],["Zé Manuel","EXT",29,51]]}
+["Kennedy","GR",27,52],["Filipe Alves","MC",33,52],["Zé Manuel","EXT",29,51]]},
+// ---- LA LIGA (20) ----,
+{n:"Real Madrid",s:"RMA",d:3,c:["#FEBE10","#FFFFFF"],st:"Santiago Bernabéu",base:83,bud:120,cap:85,acad:3,p:[["Courtois","GR",33,87],["Lunin","GR",26,79],["Carvajal","DD",33,82],["Trent Alexander-Arnold","DD",27,85],["Lucas Vázquez","DD",34,74],["Militão","DC",27,84],["Rüdiger","DC",32,84],["Huijsen","DC",20,80],["Asencio","DC",22,76],["Mendy","DE",30,80],["Fran García","DE",26,76],["Tchouaméni","MDF",25,84],["Valverde","MC",27,86],["Camavinga","MC",23,83],["Ceballos","MC",29,77],["Güler","MCO",20,80],["Bellingham","MCO",22,87],["Brahim","MCO",26,79],["Vinícius","EXT",25,89],["Rodrygo","EXT",25,85],["Mbappé","PL",27,91],["Endrick","PL",19,77]]},
+{n:"FC Barcelona",s:"BAR",d:3,c:["#A50044","#004D98"],st:"Spotify Camp Nou",base:82,bud:90,cap:99,acad:3,p:[["Joan García","GR",24,82],["Szczęsny","GR",35,80],["Ter Stegen","GR",33,85],["Koundé","DD",27,84],["Cubarsí","DC",18,82],["Araújo","DC",26,83],["Christensen","DC",29,79],["Íñigo Martínez","DC",34,80],["Balde","DE",22,81],["Gerard Martín","DE",23,72],["De Jong","MC",28,85],["Pedri","MC",22,86],["Gavi","MC",21,82],["Casadó","MDF",22,77],["Marc Bernal","MDF",18,71],["Dani Olmo","MCO",27,84],["Fermín López","MCO",22,80],["Raphinha","EXT",28,86],["Lamine Yamal","EXT",18,88],["Ferran Torres","EXT",25,79],["Rashford","PL",28,82],["Lewandowski","PL",37,84]]},
+{n:"Atlético Madrid",s:"ATM",d:3,c:["#CB3524","#FFFFFF"],st:"Riyadh Air Metropolitano",base:80,bud:80,cap:68,acad:3,p:[["Oblak","GR",32,85],["Musso","GR",31,74],["Llorente","DD",30,81],["Nahuel Molina","DD",27,79],["Giménez","DC",30,82],["Le Normand","DC",28,81],["Lenglet","DC",30,78],["Hancko","DC",27,80],["Galán","DE",28,77],["Ruggeri","DE",23,74],["Koke","MC",33,80],["De Paul","MC",31,81],["Barrios","MDF",22,79],["Gallagher","MC",25,80],["Almada","MCO",24,80],["Baena","MCO",24,81],["Nico González","EXT",23,79],["Giuliano Simeone","EXT",23,76],["Julián Álvarez","PL",25,86],["Griezmann","PL",34,84],["Sørloth","PL",29,80],["Raspadori","PL",25,76]]},
+{n:"Athletic Club",s:"ATH",d:3,c:["#EE2523","#FFFFFF"],st:"San Mamés",base:77,bud:40,cap:53,acad:3,p:[["Unai Simón","GR",28,84],["Padilla","GR",26,72],["Gorosabel","DD",29,76],["De Marcos","DD",36,72],["Vivian","DC",26,80],["Yeray","DC",30,78],["Paredes","DC",24,75],["Yuri Berchiche","DE",35,75],["Lekue","DE",31,72],["Jauregizar","MDF",22,77],["Vesga","MDF",28,75],["Ruiz de Galarreta","MC",32,75],["Prados","MC",24,72],["Sancet","MCO",25,80],["Iñaki Williams","EXT",31,81],["Berenguer","EXT",30,76],["Guruzeta","PL",30,77],["Maroan","PL",23,71]]},
+{n:"Real Betis",s:"BET",d:3,c:["#00954C","#FFFFFF"],st:"Benito Villamarín",base:76,bud:35,cap:60,acad:2,p:[["Adrián","GR",38,73],["Pau López","GR",30,77],["Bellerín","DD",30,77],["Sabaly","DD",30,74],["Bartra","DC",34,76],["Natan","DC",24,75],["Llorente","DC",26,74],["Ricardo Rodríguez","DE",33,73],["Junior Firpo","DE",29,73],["Marc Roca","MDF",29,76],["Altimira","MDF",24,72],["Fornals","MC",29,78],["Lo Celso","MCO",29,80],["Isco","MCO",33,81],["Antony","EXT",25,82],["Ezzalzouli","EXT",24,77],["Riquelme","EXT",23,74],["Cucho Hernández","PL",26,77],["Bakambu","PL",34,73]]},
+{n:"Villarreal CF",s:"VIL",d:3,c:["#FFE667","#005187"],st:"Estadio de la Cerámica",base:76,bud:40,cap:23,acad:2,p:[["Luiz Júnior","GR",24,78],["Diego Conde","GR",27,71],["Foyth","DD",27,80],["Kiko Femenía","DD",34,72],["Marín","DC",26,76],["Logan Costa","DC",24,76],["Mouriño","DC",21,74],["Pedraza","DE",28,74],["Cardona","DE",23,71],["Parejo","MC",36,79],["Comesaña","MDF",25,77],["Gueye","MDF",26,76],["Moleiro","MCO",22,78],["Buchanan","EXT",26,76],["Pépé","EXT",30,78],["Yeremy Pino","EXT",23,79],["Mikautadze","PL",25,79],["Gerard Moreno","PL",33,78],["Oluwaseyi","PL",24,72]]},
+{n:"Real Sociedad",s:"RSO",d:3,c:["#0067B1","#FFFFFF"],st:"Reale Arena",base:75,bud:35,cap:40,acad:3,p:[["Remiro","GR",30,81],["Marrero","GR",25,70],["Aramburu","DD",24,75],["Hamari Traoré","DD",33,74],["Zubeldia","DC",28,77],["Aguerd","DC",29,78],["Caleta-Car","DC",29,76],["Aihen","DE",27,72],["Sergio Gómez","DE",25,75],["Zubimendi","MDF",26,82],["Marín","MDF",22,74],["Brais Méndez","MC",28,79],["Olasagasti","MC",24,72],["Take Kubo","EXT",24,82],["Barrenetxea","EXT",23,77],["Oyarzabal","PL",28,82],["Becker","PL",27,74],["Guedes","EXT",29,76]]},
+{n:"Valencia CF",s:"VAL",d:3,c:["#FF4B1F","#000000"],st:"Mestalla",base:72,bud:22,cap:49,acad:2,p:[["Mamardashvili","GR",25,82],["Agirrezabala","GR",24,74],["Thierry Correia","DD",26,74],["Foulquier","DD",32,72],["Tárrega","DC",24,75],["Diakhaby","DC",29,75],["Mosquera","DC",21,75],["Comert","DC",28,72],["Gayà","DE",30,77],["Jesús Vázquez","DE",23,71],["Pepelu","MDF",27,76],["Guerra","MC",23,75],["Almeida","MDF",26,73],["Diego López","EXT",23,77],["Rioja","EXT",27,72],["Danjuma","EXT",28,75],["Hugo Duro","PL",26,76],["Sadiq","PL",28,72]]},
+{n:"Celta de Vigo",s:"CEL",d:3,c:["#8AC3EE","#FFFFFF"],st:"Balaídos",base:73,bud:24,cap:29,acad:2,p:[["Guaita","GR",38,75],["Radu","GR",27,72],["Mingueza","DD",26,77],["Carl Starfelt","DC",30,74],["Marcos Alonso","DC",34,72],["Javi Rodríguez","DC",23,71],["Manu Sánchez","DE",25,72],["Ristic","DE",27,71],["Beltrán","MDF",24,75],["Ilaix Moriba","MC",22,73],["Hugo Sotelo","MDF",21,70],["Aspas","MCO",38,80],["Swedberg","EXT",24,74],["Bamba","EXT",22,73],["Borja Iglesias","PL",32,75],["Alfon","EXT",24,72]]},
+{n:"CA Osasuna",s:"OSA",d:3,c:["#0A346F","#D91A21"],st:"El Sadar",base:71,bud:15,cap:24,acad:1,p:[["Sergio Herrera","GR",32,74],["Aitor Fernández","GR",34,71],["Areso","DD",25,73],["Bretones","DE",25,72],["David García","DC",32,75],["Catena","DC",30,74],["Boyomo","DC",24,73],["Herrando","DC",30,72],["Juan Cruz","DE",28,71],["Torró","MDF",30,74],["Moncayola","MC",27,76],["Aimar Oroz","MCO",24,76],["Iker Muñoz","MC",22,70],["Budimir","PL",34,78],["Raúl García de Haro","PL",26,70]]},
+{n:"RCD Mallorca",s:"MLL",d:3,c:["#E20613","#000000"],st:"Mallorca Son Moix",base:71,bud:16,cap:23,acad:1,p:[["Leo Román","GR",25,73],["Greif","GR",25,72],["Maffeo","DD",28,76],["Mojica","DE",32,72],["Raíllo","DC",30,75],["Valjent","DC",30,75],["Kumbulla","DC",25,73],["Morlanes","MDF",26,72],["Lato","DE",28,71],["Samú Costa","MDF",25,76],["Antonio Sánchez","MC",28,72],["Darder","MC",32,76],["Mascarell","MC",32,71],["Dani Rodríguez","MCO",37,71],["Asano","EXT",31,72],["Muriqi","PL",31,78],["Abdón Prats","PL",33,71],["Larin","PL",30,73]]},
+{n:"Rayo Vallecano",s:"RAY",d:3,c:["#E53027","#FFFFFF"],st:"Vallecas",base:71,bud:14,cap:15,acad:1,p:[["Batalla","GR",30,74],["Cárdenas","GR",24,70],["Balliu","DD",33,72],["Andrei Ratiu","DD",27,75],["Lejeune","DC",34,75],["Mumin","DC",27,73],["Aridane","DC",35,72],["Pep Chavarría","DE",27,72],["Pacha Espino","DE",31,70],["Unai López","MDF",30,74],["Pathé Ciss","MDF",31,73],["Óscar Valentín","MDF",31,72],["Pedro Díaz","MC",28,71],["Isi Palazón","EXT",30,77],["Álvaro García","EXT",32,75],["De Frutos","EXT",28,74],["Camello","PL",24,74],["Embarba","EXT",31,72]]},
+{n:"Getafe CF",s:"GET",d:3,c:["#005999","#FFFFFF"],st:"Coliseum",base:70,bud:13,cap:17,acad:1,p:[["David Soria","GR",32,76],["Letschert","GR",30,69],["Iglesias","DD",26,71],["Rico","DE",31,71],["Djené","DC",34,74],["Alderete","DC",28,74],["Duarte","DC",29,72],["Arambarri","MDF",29,76],["Maksimovic","MDF",30,72],["Milla","MC",28,74],["Coba da Costa","MC",22,70],["Liso","EXT",23,70],["Mayoral","PL",28,76],["Uche","PL",24,73],["Álex Sola","DD",24,70]]},
+{n:"RCD Espanyol",s:"ESP",d:3,c:["#0072CE","#FFFFFF"],st:"Stage Front Stadium",base:69,bud:12,cap:40,acad:1,p:[["Joan García","GR",24,73],["Dmitrovic","GR",33,74],["El Hilali","DD",24,70],["Rubén Sánchez","DD",22,69],["Cabrera","DC",30,73],["Calero","DC",33,72],["Riedel","DC",26,71],["Brian Oliván","DE",31,70],["Carlos Romero","DE",23,71],["Pol Lozano","MDF",26,72],["Edu Expósito","MC",29,75],["Gragera","MDF",25,71],["Pere Milla","MCO",32,72],["Puado","EXT",27,74],["Jofre Carreras","EXT",23,70],["Roberto Fernández","PL",24,73]]},
+{n:"Sevilla FC",s:"SEV",d:3,c:["#D8112C","#FFFFFF"],st:"Ramón Sánchez-Pizjuán",base:73,bud:20,cap:43,acad:2,p:[["Nyland","GR",35,75],["Álvaro Fernández","GR",26,73],["Juanlu Sánchez","DD",22,73],["Carmona","DD",25,74],["Badé","DC",25,79],["Marcão","DC",29,75],["Kike Salas","DC",23,73],["Gudelj","DC",34,73],["Pedrosa","DE",27,73],["Suazo","DE",27,73],["Sow","MDF",28,75],["Agoumé","MDF",23,74],["Saúl","MC",30,76],["Lukebakio","EXT",27,77],["Vargas","EXT",26,74],["Suso","MCO",31,74],["Peque","EXT",22,70],["Isaac Romero","PL",25,74],["Akor Adams","PL",25,73]]},
+{n:"Girona FC",s:"GIR",d:3,c:["#CD2534","#FFFFFF"],st:"Montilivi",base:71,bud:16,cap:14,acad:1,p:[["Gazzaniga","GR",33,74],["Krapyvtsov","GR",20,68],["Arnau Martínez","DD",22,75],["Francés","DC",24,74],["Krejci","DC",30,75],["David López","DC",35,72],["Blind","DC",35,72],["Miguel Gutiérrez","DE",24,77],["Hugo Rincón","DD",23,69],["Iván Martín","MC",26,73],["Romeu","MDF",34,73],["Solís","MC",21,70],["Witsel","MDF",36,73],["Tsygankov","EXT",27,78],["Portu","EXT",33,73],["Bryan Gil","EXT",24,75],["Asprilla","EXT",22,72],["Stuani","PL",38,75],["Abel Ruiz","PL",25,73],["Vladyslav Vanat","PL",23,74]]},
+{n:"Deportivo Alavés",s:"ALA",d:3,c:["#0761AF","#FFFFFF"],st:"Mendizorroza",base:69,bud:11,cap:20,acad:1,p:[["Sivera","GR",29,75],["Owono","GR",23,69],["Tenaglia","DD",29,72],["Garcés","DC",25,72],["Mouriño","DC",21,71],["Diarra","DC",24,71],["Jonny Otto","DE",31,71],["Manu Sánchez","DE",25,71],["Blanco","MDF",25,72],["Guridi","MC",27,73],["Ibáñez","MC",26,71],["Aleñá","MCO",27,74],["Carlos Vicente","EXT",26,73],["Toni Martínez","PL",28,73],["Kike García","PL",35,72],["Guevara","MDF",22,70]]},
+{n:"Levante UD",s:"LEV",d:3,c:["#B4053F","#005CA9"],st:"Ciutat de València",base:68,bud:9,cap:26,acad:1,p:[["Ryan","GR",33,73],["Primero","GR",24,68],["Toljan","DD",31,71],["Manu Sánchez","DE",25,70],["Elgezabal","DC",32,71],["Cabello","DC",24,69],["Dela","DC",26,69],["Moreno","DE",24,68],["Pablo Martínez","MDF",26,70],["Oriol Rey","MDF",26,69],["Vencedor","MC",26,70],["Carlos Álvarez","MCO",23,73],["Brugué","EXT",24,71],["Olasagasti","MC",24,69],["Iván Romero","PL",24,71],["Etta Eyong","PL",22,72],["Koyalipou","PL",26,69]]},
+{n:"Elche CF",s:"ELC",d:3,c:["#00913F","#FFFFFF"],st:"Martínez Valero",base:67,bud:8,cap:31,acad:1,p:[["Dituro","GR",33,71],["Peña","GR",26,68],["Héctor Fort","DD",19,71],["Núñez","DD",25,69],["Affengruber","DC",24,70],["Bambo Diaby","DC",27,70],["Chust","DC",26,69],["Pedrosa","DE",24,69],["Valera","DE",24,68],["Aguado","MDF",28,71],["Febas","MC",29,71],["Mendoza","MC",23,69],["Josan","EXT",35,70],["André Silva","PL",30,74],["Rafa Mir","PL",28,72]]},
+{n:"Real Oviedo",s:"OVI",d:3,c:["#003DA5","#FFFFFF"],st:"Carlos Tartiere",base:66,bud:7,cap:30,acad:1,p:[["Aarón Escandell","GR",30,70],["Brais","GR",24,67],["Lucas Ahijado","DD",28,68],["Javi López","DD",30,68],["Calvo","DC",28,69],["David Costas","DC",28,69],["Bauzà","DC",25,68],["Rahim","DE",24,67],["Colombatto","MDF",27,70],["Sibo","MDF",22,68],["Vidal","MC",27,69],["Santi Cazorla","MCO",41,73],["Chaira","MC",22,67],["Hassan","EXT",27,69],["Viñas","PL",27,70],["Rondón","PL",36,71],["Alemão","PL",26,68]]}
 ];
 /* Nomes para jovens gerados e preenchimento de plantéis */
 const FN=["Afonso","André","Bernardo","Bruno","Carlos","Daniel","David","Diogo","Duarte","Eduardo","Fábio","Francisco","Gabriel","Gonçalo","Guilherme","Gustavo","Henrique","Hugo","Ivo","João","Jorge","José","Leandro","Leonardo","Lourenço","Lucas","Luís","Manuel","Marco","Martim","Mateus","Miguel","Nuno","Paulo","Pedro","Rafael","Renato","Ricardo","Rodrigo","Rui","Salvador","Samuel","Santiago","Sérgio","Simão","Tiago","Tomás","Vasco","Vicente","Vítor"];
@@ -538,6 +558,16 @@ const ROLES={
   F9:{n:"Falso Nove",w:[.30,.25,.05,.10,.30]}
 };
 const POS2ROLE={GR:"GR",DD:"DL",DE:"DL",DC:"CEN",MDF:"MDF",MC:"B2B",MCO:"MCR",EXT:"EXT",PL:"PL"};
+/* === REGISTO DE LIGAS ===
+   Para adicionar uma liga nova no futuro: 1) junta os clubes ao TEAMS_RAW com um novo d: (divisão);
+   2) acrescenta aqui a entrada com nome, país e taças dessa liga. O resto (calendário, tabelas,
+   seleção de clube, taças) é gerado automaticamente a partir destes dados. */
+const LEAGUES={
+  1:{name:"Liga Portugal",short:"Liga Portugal",flag:"🇵🇹",cups:["TL","TP"]},
+  2:{name:"Liga Portugal 2",short:"Liga Portugal 2",flag:"🇵🇹",cups:["TP"]},
+  3:{name:"La Liga",short:"La Liga",flag:"🇪🇸",cups:["CR"]}
+};
+const LEAGUE_DIVS=()=>[...new Set(TEAMS_RAW.map(t=>t.d))].filter(d=>LEAGUES[d]).sort((a,b)=>a-b);
 const ATTR_NAMES_F=["Passe","Remate","Desarme","Velocidade","Posicionamento"];
 const ATTR_NAMES_GK=["Passe","Jogo de Mãos","Agilidade","Velocidade","Posicionamento"];
 /* Zonas do campo: linha 0=GR, 1=defesa, 2=meio-def, 3=meio, 4=meio-of, 5=ataque */
@@ -638,25 +668,31 @@ function roundRobin(ids){ // gera jornadas (ida e volta)
   return rounds.concat(volta);
 }
 function buildSeason(season){
-  const d1=G.teams.filter(t=>t.div===1).map(t=>t.i), d2=G.teams.filter(t=>t.div===2).map(t=>t.i);
-  const r1=roundRobin(shuffle([...d1])), r2=roundRobin(shuffle([...d2]));
+  const d1=G.teams.filter(t=>t.div===1).map(t=>t.i), d2=G.teams.filter(t=>t.div===2).map(t=>t.i), d3=G.teams.filter(t=>t.div===3).map(t=>t.i);
+  const r1=roundRobin(shuffle([...d1])), r2=roundRobin(shuffle([...d2])), r3=roundRobin(shuffle([...d3]));
   const cal=[]; let date=new Date(season,7,9); // 2.º sáb de agosto
   const nextSat=()=>{date=new Date(date.getTime()+7*864e5);return new Date(date)};
   const midweek=off=>new Date(date.getTime()-((off||3))*864e5);
   // Taça da Liga: 32 (sem equipas B); Taça de Portugal: todas menos B (33 -> pré-elim.)
-  const elig=G.teams.filter(t=>!t.b).map(t=>t.i);
-  const tlTeams=shuffle([...elig]).slice(0,32);
-  const tpTeams=shuffle([...elig]);
-  G.cups={TL:{name:"Taça da Liga",alive:tlTeams,results:[]},TP:{name:"Taça de Portugal",alive:tpTeams,results:[]}};
+  const eligPT=G.teams.filter(t=>!t.b&&t.div<=2).map(t=>t.i);
+  const eligES=G.teams.filter(t=>t.div===3).map(t=>t.i);
+  const tlTeams=shuffle([...eligPT]).slice(0,32);
+  const tpTeams=shuffle([...eligPT]);
+  const crTeams=shuffle([...eligES]); // Copa del Rey
+  G.cups={TL:{name:"Taça da Liga",alive:tlTeams,results:[]},TP:{name:"Taça de Portugal",alive:tpTeams,results:[]},CR:{name:"Copa del Rey",alive:crTeams,results:[]}};
   let li=0;
-  const cupRounds=[ // [semana após a qual entra, taça]
-    [4,"TL"],[7,"TP"],[10,"TL"],[13,"TP"],[16,"TL"],[19,"TP"],[22,"TL"],[25,"TP"],[28,"TL"],[30,"TP"],[32,"TP"]
+  const cupRounds=[ // [semana, taça]
+    [4,"TL"],[6,"CR"],[7,"TP"],[10,"TL"],[12,"CR"],[13,"TP"],[16,"TL"],[18,"CR"],[19,"TP"],[22,"TL"],[24,"CR"],[25,"TP"],[28,"TL"],[30,"TP"],[31,"CR"],[32,"TP"],[34,"CR"]
   ];
-  for(let w=0;w<34;w++){
+  const weeks=Math.max(r1.length,r2.length,r3.length);
+  for(let w=0;w<weeks;w++){
     const dt=w?nextSat():new Date(date);
-    cal.push({date:+dt,fx:[...r1[w].map(([h,a])=>({c:"L1",h,a})),...r2[w].map(([h,a])=>({c:"L2",h,a}))],rd:w+1});
-    const cup=cupRounds.find(c=>c[0]===w+1);
-    if(cup)cal.push({date:+dt+3*864e5,cup:cup[1]});
+    const fx=[];
+    if(r1[w])fx.push(...r1[w].map(([h,a])=>({c:"L1",h,a})));
+    if(r2[w])fx.push(...r2[w].map(([h,a])=>({c:"L2",h,a})));
+    if(r3[w])fx.push(...r3[w].map(([h,a])=>({c:"L3",h,a})));
+    cal.push({date:+dt,fx,rd:w+1});
+    cupRounds.filter(c=>c[0]===w+1).forEach(c=>cal.push({date:+dt+3*864e5,cup:c[1]}));
   }
   G.cal=cal;G.calIdx=0;
   G.tables={};G.teams.forEach(t=>G.tables[t.i]={p:0,w:0,e:0,l:0,gm:0,gs:0,pts:0});
@@ -719,7 +755,7 @@ function pickGo(n){
   $("pick-step1").style.display=n===1?"":"none";
   $("pick-step2").style.display=n===2?"":"none";
   $("pick-sub").textContent="Passo "+n+" de 2 · "+(n===1?"O teu nome":"Escolhe o teu clube — Época 2025/26");
-  if(n===2)renderPick(pickDiv||1);
+  if(n===2){renderLeagueTabs();renderPick(pickDiv||1);}
 }
 $("btn-new-career").onclick=()=>{pickGo(1);show("scr-pick");setTimeout(()=>$("mgr-name").focus(),150)};
 $("btn-step2").onclick=()=>pickGo(2);
@@ -728,10 +764,16 @@ $("pick-back").onclick=()=>{if(pickStep===2)pickGo(1);else show("scr-home")};
 
 /* ---- Escolha de clube ---- */
 let pickDiv=1;
-document.querySelectorAll("#pick-div-seg button").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll("#pick-div-seg button").forEach(x=>x.classList.remove("on"));
-  b.classList.add("on");renderPick(+b.dataset.d);
-});
+function renderLeagueTabs(){
+  const divs=LEAGUE_DIVS();
+  if(!divs.includes(pickDiv))pickDiv=divs[0];
+  $("pick-div-seg").innerHTML=divs.map(d=>`<button class="${d===pickDiv?"on":""}" data-d="${d}">${LEAGUES[d].flag} ${LEAGUES[d].short}</button>`).join("");
+  document.querySelectorAll("#pick-div-seg button").forEach(b=>b.onclick=()=>{
+    pickDiv=+b.dataset.d;
+    document.querySelectorAll("#pick-div-seg button").forEach(x=>x.classList.toggle("on",x===b));
+    renderPick(pickDiv);
+  });
+}
 function crest(t,sm){
   const pat=(t.i!=null?t.i:0)%3, c0=t.c[0], c1=t.c[1];
   const deco=pat===0?`<path d="M50 4 L88 16 V52 C88 76 70 90 50 98 C30 90 12 76 12 52 V16 Z" fill="${c1}" opacity=".25" clip-path="url(#sh${t.i})" transform="translate(24 0) scale(.6)" />`
@@ -1328,7 +1370,7 @@ function showLineups(){
     </div>
   </div>`;
 }
-function compName(c){return c==="L1"?"Liga Portugal":c==="L2"?"Liga Portugal 2":c==="TL"?"Taça da Liga":"Taça de Portugal"}
+function compName(c){return c==="L1"?"Liga Portugal":c==="L2"?"Liga Portugal 2":c==="L3"?"La Liga":c==="TL"?"Taça da Liga":c==="TP"?"Taça de Portugal":c==="CR"?"Copa del Rey":"Taça"}
 function addLine(cls,txt,min){
   if(!M.interactive)return;
   const el=document.createElement("div");el.className="rline "+cls;
@@ -1818,8 +1860,8 @@ function finishDay(md,mineFx){
 function tvMoney(posOf){
   G.teams.forEach(t=>{
     if(t.b)return;
-    const pos=posOf?clamp(posOf[t.i]??8,0,17):8;
-    const amt=t.div===1?3500000+(17-pos)*180000:1000000+(17-pos)*50000;
+    const pos=posOf?clamp(posOf[t.i]??8,0,t.div===3?19:17):8;
+    const amt=t.div===3?6000000+(19-pos)*320000:t.div===1?3500000+(17-pos)*180000:1000000+(17-pos)*50000;
     t.budget+=amt;
     if(t.i===G.my){
       G.revenue.season.tv=(G.revenue.season.tv||0)+amt;G.revenue.season.total+=amt;
@@ -1838,25 +1880,29 @@ function historyHTML(){
 
 /* =================== FIM DE ÉPOCA =================== */
 function newSeason(){
-  const posOf={};[1,2].forEach(d=>{const ids=G.teams.filter(x=>x.div===d).map(x=>x.i)
+  const posOf={};[1,2,3].forEach(d=>{const ids=G.teams.filter(x=>x.div===d).map(x=>x.i)
     .sort((a,b)=>((G.tables[b]||{}).pts||0)-((G.tables[a]||{}).pts||0));ids.forEach((id,ix)=>posOf[id]=ix);});
   // classificação final
   const order=div=>G.teams.filter(t=>t.div===div).map(t=>t.i)
     .sort((a,b)=>G.tables[b].pts-G.tables[a].pts||(G.tables[b].gm-G.tables[b].gs)-(G.tables[a].gm-G.tables[a].gs)||G.tables[b].gm-G.tables[a].gm);
-  const o1=order(1),o2=order(2);
-  const champ=G.teams[o1[0]];
-  pushNews("🏆 Campeão nacional: "+champ.n,champ.n+" é o campeão da Liga Portugal "+G.season+"/"+(G.season+1)%100+"!");
-  // despromovidos: 2 últimos da L1
+  const o1=order(1),o2=order(2),o3=order(3);
+  const myDiv=G.teams[G.my].div;
+  const champPT=G.teams[o1[0]],champES=o3.length?G.teams[o3[0]]:null;
+  if(myDiv===3&&champES)pushNews("🏆 Campeão de Espanha: "+champES.n,champES.n+" venceu La Liga "+G.season+"/"+(G.season+1)%100+"!");
+  else pushNews("🏆 Campeão nacional: "+champPT.n,champPT.n+" é o campeão da Liga Portugal "+G.season+"/"+(G.season+1)%100+"!");
+  // promoção/despromoção apenas entre Liga Portugal e Liga Portugal 2 (La Liga é fechada no jogo)
   const down=o1.slice(-2);
-  // promovidos: 2 primeiros elegíveis (sem equipas B) da L2
   const up=o2.filter(ti=>!G.teams[ti].b).slice(0,2);
   down.forEach(ti=>G.teams[ti].div=2);up.forEach(ti=>G.teams[ti].div=1);
-  const myPos=(G.teams[G.my].div===1?o1:o2).indexOf(G.my)+1;
-  G.history.push({s:G.season,txt:G.teams[G.my].n+" — "+myPos+".º lugar"+(o1[0]===G.my?" 🏆 CAMPEÃO":"")});
+  const myOrder=myDiv===1?o1:myDiv===2?o2:o3;
+  const myPos=myOrder.indexOf(G.my)+1;
+  G.history.push({s:G.season,txt:G.teams[G.my].n+" — "+myPos+".º lugar"+(myOrder[0]===G.my?" 🏆 CAMPEÃO":"")});
   if(up.includes(G.my))pushNews("🎉 SUBIDA DE DIVISÃO!","O "+G.teams[G.my].n+" garantiu a subida à Liga Portugal! Parabéns, Míster!");
   if(down.includes(G.my))pushNews("Descida de divisão","O "+G.teams[G.my].n+" desceu à Liga Portugal 2. Hora de reconstruir.");
-  // prémios por classificação
-  G.teams.forEach(t=>{if(t.b)return;const pos=(t.div===1?o1:o2).indexOf(t.i);t.budget+=Math.max(0,( t.div===1?(18-pos)*4e5+8e5:(18-pos)*1e5+2e5));});
+  // prémios por classificação (La Liga paga mais — direitos de TV superiores)
+  G.teams.forEach(t=>{if(t.b)return;const ord=t.div===1?o1:t.div===2?o2:o3;const pos=ord.indexOf(t.i);
+    const prize=t.div===3?(20-pos)*9e5+15e5:t.div===1?(18-pos)*4e5+8e5:(18-pos)*1e5+2e5;
+    t.budget+=Math.max(0,prize);});
   // envelhecimento, reforma e regens (25%)
   const newFA=[];
   G.teams.forEach(t=>{
