@@ -1382,6 +1382,19 @@ function stepMinute(){
   // posse curta com passe fraco → bola perdida → contra-ataques sofridos
   if(M.Th.posse&&pqH<70)chA*=1+(70-pqH)*0.012;
   if(M.Ta.posse&&pqA<70)chH*=1+(70-pqA)*0.012;
+  // ÍMPETO DE RECUPERAÇÃO: equipa a perder que arrisca (ofensiva/pressão alta) ataca mais E concede menos
+  const comeback=(T,behind)=>{
+    const aggr=(T.ment===2?0.5:0)+(T.press===2?0.25:0); // só recompensa quem arrisca
+    if(aggr<=0||behind<=0)return {push:1,exp:1};
+    const late=Math.max(0,(M.min-55)/35);     // presente desde cedo, cresce até ao fim
+    const def=Math.min(behind,2)/2;            // 1 golo atrás=0.5, 2+=1
+    const k=aggr*def*(0.4+0.6*late);
+    return {push:1+k, exp:1-k*0.5};            // mais ocasiões próprias, menos exposição
+  };
+  const bH=M.ga-M.gh,bA=M.gh-M.ga;
+  const cbH=comeback(M.Th,bH),cbA=comeback(M.Ta,bA);
+  chH*=cbH.push;chA*=cbH.exp;  // casa a perder: ataca mais (push), concede menos (exp)
+  chA*=cbA.push;chH*=cbA.exp;
   if(M.mom&&M.mom.kind==="cut"&&M.min-M.mom.min<=2){if(M.mom.side===1)chH*=1.6;else chA*=1.6;}
   const r=Math.random();
   if(Math.random()<0.0042&&M.min>5&&M.min<88)matchInjury();
