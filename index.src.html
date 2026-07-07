@@ -3228,10 +3228,15 @@ function rpStart(d){
   {
     /* teto de profundidade por role: a defesa não passa o seu meio-campo */
     const CAP={GR:0.02,CEN:0.30,DL:0.34,ALA:0.44,MDF:0.42,B2B:0.50,MCR:0.56,F9:0.60,AVI:0.60,EXT:0.60,PL:0.62};
-    for(const df of RP.defs)df.yCap=CAP[df.role]!=null?CAP[df.role]:0.40;
-    /* marcação: cada defesa marca o atacante mais próximo, mas só os que entram no seu meio-campo */
+    const CAPMAX={GR:0.08,CEN:0.46,DL:0.56,ALA:0.66,MDF:0.66,B2B:0.75,MCR:0.80,F9:0.88,AVI:0.88,EXT:0.88,PL:0.92};
+    for(const df of RP.defs){df.yCap=CAP[df.role]!=null?CAP[df.role]:0.40;df.yMax=CAPMAX[df.role]!=null?CAPMAX[df.role]:0.70;}
+    /* marcação por compatibilidade: cada defesa marca o adversário mais próximo DA SUA FAIXA
+       (um central marca avançados; não é arrastado campo acima atrás de um médio) */
     const cand=[];
-    for(const df of RP.defs)for(const dt of RP.dots){if(dt.gk)continue;cand.push({df,id:dt.id,dd:Math.hypot(df.x-dt.x,df.y-dt.y)});}
+    for(const df of RP.defs)for(const dt of RP.dots){
+      if(dt.gk)continue;
+      if(dt.y0!=null&&(dt.y0>df.yMax+0.05||dt.y0<df.yCap-0.25))continue;
+      cand.push({df,id:dt.id,dd:Math.hypot(df.x-dt.x,df.y-dt.y)});}
     cand.sort((a,b)=>a.dd-b.dd);
     const tD=new Set(),tA=new Set();
     for(const c of cand){if(tD.has(c.df)||tA.has(c.id))continue;c.df.mk=c.id;tD.add(c.df);tA.add(c.id);}
@@ -3451,8 +3456,9 @@ function rpFrame(now){
       }else{df.y+=(Math.max(bv,0.03)-df.y)*0.005;}
       df.x+=(bx-df.x)*0.004; /* deslize coletivo para o lado da bola */
     }
-    /* TETO (todos, incl. o presser): um defensor nunca se perde no ataque */
+    /* TETOS (todos, incl. o presser): um defensor nunca sai da sua faixa de role */
     if(df.y<df.yCap)df.y=df.yCap;
+    if(df.yMax!=null&&df.y>df.yMax)df.y=df.yMax;
   }
   const cid=seg?(seg.carry?seg.a.id:null):null;
   let si=-1;for(const s2 of RP.segs){if(t>=s2.t0)si=s2.i;else break;}
@@ -3515,12 +3521,25 @@ function rpFrame(now){
     }
   }
   /* fora-de-jogo: quem ainda não recebeu segura a linha do último defesa até a bola ser jogada */
-  /* piso mínimo: um jogador nunca entra fisicamente na baliza adversária antes de receber a bola.
-     A profundidade de role já dá posições realistas — não recuamos ninguém para trás da sua base. */
+  /* alinhamento com a defesa: quem ainda espera a bola joga no OMBRO do último defesa —
+     o PL colado à linha (ligeiramente além), os restantes logo atrás. Quem recebe/rompe é isento. */
   const carrierNow=seg?(seg.carry?seg.a.id:seg.b.id):null;
+  const si2=seg?seg.i:(t>=RP.dur?1e9:-1);
+  const alw2=RP._alw2||(RP._alw2=new Set());alw2.clear();alw2.add(RP.firstId);
+  for(const s2 of RP.segs){if(s2.i<=si2&&!s2.carry)alw2.add(s2.b.id);}
+  const defLine=RP.defs.length?Math.min.apply(null,RP.defs.map(o=>o.y)):null;
   for(const dt of RP.dots){
-    if(dt.gk||dt.id===carrierNow)continue;
+    if(dt.gk||dt.id===carrierNow||alw2.has(dt.id))continue;
+    if(defLine!=null){
+      const lim=defLine+((dt.role==="PL"||dt.role==="F9"||dt.role==="AVI")?-0.006:0.045);
+      if(dt.y<lim)dt.y=lim;
+    }
     if(dt.y<0.075)dt.y=0.075;
+  }
+  /* tetos defensivos reaplicados após a separação: ninguém é empurrado para fora da sua faixa */
+  for(const df of RP.defs){
+    if(df.y<df.yCap)df.y=df.yCap;
+    if(df.yMax!=null&&df.y>df.yMax)df.y=df.yMax;
   }
   /* câmara segue a jogada */
   const foc=rpP(bx,Math.max(bv,-0.02),0);
