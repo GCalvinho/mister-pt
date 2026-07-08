@@ -3133,7 +3133,7 @@ function rpStart(d){
     RP.segs.push({t0:t,t1:t+dur,a,b,carry,i:RP.segs.length});t+=dur+(carry?0:140);
   }
   const last=legs[legs.length-1];
-  const out=d.outcome||"goal";RP.out=out;
+  const out=d.outcome||"goal";RP.out=out;RP.bEnd=null;RP._gkU=null;
   var gx=0.5,gy=-0.022;
   if(out==="tackle"){
     /* a jogada morre num corte: a bola vai até um ponto onde o defensor intercepta */
@@ -3197,11 +3197,15 @@ function rpStart(d){
     const byId={};for(const o of nn)byId[o.id]=o;
     for(const sg of RP.segs){
       const rc=byId[sg.b.id];
-      if(rc&&rc.y0!=null&&!sg.carry&&sg.b.y>rc.y0+0.02)sg.b.y=rc.y0;
+      if(rc&&rc.y0!=null&&!sg.carry&&sg.b.y>rc.y0+0.02)sg.b.y=Math.max(rc.y0,Math.min(sg.b.y,0.19));
     }
-    /* origem do remate = onde o rematador de facto está */
+    /* origem do remate = ponto de receção do rematador (continuidade da bola) */
     const shotSeg=RP.segs.find(s=>s.shot&&!s.ric);
-    if(shotSeg){const sh=byId[shotSeg.a.id];if(sh&&sh.y0!=null&&shotSeg.a.y>sh.y0+0.02)shotSeg.a.y=sh.y0;}
+    if(shotSeg){
+      const prev=RP.segs.filter(s2=>!s2.shot&&s2.i<shotSeg.i&&s2.b.id===shotSeg.a.id).pop();
+      if(prev){shotSeg.a.y=prev.b.y;shotSeg.a.x=prev.b.x;}
+      else{const sh=byId[shotSeg.a.id];if(sh&&sh.y0!=null&&shotSeg.a.y>sh.y0+0.02)shotSeg.a.y=Math.max(sh.y0,Math.min(shotSeg.a.y,0.19));}
+    }
     /* recalcular RP.recv com os pontos corrigidos */
     RP.recv={};
     RP.segs.forEach(sg=>{if(!sg.carry&&!sg.shot){(RP.recv[sg.b.id]=RP.recv[sg.b.id]||[]).push({si:sg.i,x:sg.b.x,y:sg.b.y});}});
@@ -3420,7 +3424,13 @@ function rpFrame(now){
     if(seg.shot){bh=Math.sin(Math.PI*Math.min(k*1.15,1))*0.028;shotK=k;}
     if(seg.carry){const d0=RP.dots.find(x=>x.id===seg.a.id);if(d0){d0.x=bx;d0.y=bv;}}
   }else if(t>=RP.dur){
-    const lb=RP.segs[RP.segs.length-1].b;bx=lb.x;bv=lb.y;
+    const lb=RP.segs[RP.segs.length-1].b;
+    if(RP.out==="save"||RP.out==="post"){ /* o GR agarra: a bola desliza para as luvas dele */
+      if(!RP.bEnd)RP.bEnd={x:lb.x,y:lb.y};
+      const tgx=RP._gkU!=null?RP._gkU:RP.gk.x;
+      RP.bEnd.x+=(tgx-RP.bEnd.x)*0.10;RP.bEnd.y+=(RP.gk.y-RP.bEnd.y)*0.10;
+      bx=RP.bEnd.x;bv=RP.bEnd.y;
+    }else{bx=lb.x;bv=lb.y;}
     if(RP.phase==="play"){RP.phase="gol";RP.phT=t;$("rp-cap").classList.add("gol");
       if(RP.out==="goal"&&navigator.vibrate){try{navigator.vibrate(70)}catch(e){}}}
   }else{
@@ -3430,7 +3440,7 @@ function rpFrame(now){
   }
   /* guarda-redes: mergulho durante o remate */
   if(seg&&seg.shot){RP.gk.dive=Math.min(1,shotK*1.5);}
-  const gkU=RP.gk.x+RP.gk.side*RP.gk.dive*(RP.out==="save"?0.095:0.055);
+  const gkU=RP.gk.x+RP.gk.side*RP.gk.dive*(RP.out==="save"?0.095:0.055);RP._gkU=gkU;
   /* defesa viva: o mais próximo pressiona a bola; os restantes marcam o seu homem pelo lado da baliza */
   const dp=(RP.d.dfT&&RP.d.dfT.press!=null)?RP.d.dfT.press:1; /* pressão tática da defesa */
   const pLerp=dp===2?0.038:dp===0?0.022:0.030;
@@ -3438,16 +3448,20 @@ function rpFrame(now){
   const mLerp=dp===2?0.028:dp===0?0.020:0.024;
   const recvId=(seg&&!seg.carry&&!seg.shot)?seg.b.id:null;
   let presser=null,pdist=1e9;
-  for(const df of RP.defs){const d2=Math.hypot(df.x-bx,df.y-bv);if(d2<pdist){pdist=d2;presser=df;}}
   for(const df of RP.defs){
+    if(recvId!=null&&df.mk===recvId)continue; /* quem marca o desmarque persegue-o: nunca é presser */
+    const d2=Math.hypot(df.x-bx,df.y-bv);if(d2<pdist){pdist=d2;presser=df;}}
+  for(const df of RP.defs){
+    df._chase=(df===presser&&bv<0.34); /* presser junto à área acompanha até ao fim */
     if(df===presser){
-      /* pressiona a bola, mas não persegue além do seu teto de campo */
       df.x+=(bx-df.x)*pLerp;df.y+=(Math.max(bv,0.04)-df.y)*pLerp;
     }else{
       const mk=df.mk!=null?RP.dots.find(x=>x.id===df.mk):null;
       if(mk){
-        if(recvId!=null&&mk.id===recvId){ /* o seu homem desmarcou-se: sprint atrás dele */
-          df.x+=(mk.x-df.x)*0.045;df.y+=(Math.max(mk.y-0.01,0.10)-df.y)*0.045;
+        if(recvId!=null&&mk.id===recvId){ /* desmarque: persegue a ritmo constante, colado ao homem */
+          df._chase=true;
+          const gy2=Math.max(mk.y-0.015,0.05),ddx=mk.x-df.x,ddy=gy2-df.y,dd=Math.hypot(ddx,ddy);
+          if(dd>1e-4){const sp=Math.min(dd,0.0060);df.x+=ddx/dd*sp;df.y+=ddy/dd*sp;}
         }else{
           const lf=Math.max(0.10,bv-0.30); /* a linha defensiva não afunda com a bola longe */
           const tx=mk.x*0.75+0.125,ty=Math.max(lf,mk.y-mGap); /* entre o homem e a baliza */
@@ -3456,8 +3470,9 @@ function rpFrame(now){
       }else{df.y+=(Math.max(bv,0.03)-df.y)*0.005;}
       df.x+=(bx-df.x)*0.004; /* deslize coletivo para o lado da bola */
     }
-    /* TETOS (todos, incl. o presser): um defensor nunca sai da sua faixa de role */
-    if(df.y<df.yCap)df.y=df.yCap;
+    /* TETOS: um defensor não sai da sua faixa — exceto em perseguição ativa (acompanha o desmarque) */
+    const cap2=df._chase?0.06:df.yCap;
+    if(df.y<cap2)df.y=cap2;
     if(df.yMax!=null&&df.y>df.yMax)df.y=df.yMax;
   }
   const cid=seg?(seg.carry?seg.a.id:null):null;
@@ -3467,8 +3482,8 @@ function rpFrame(now){
     const rd=RP.dots.find(x=>x.id===seg.b.id);
     if(rd){
       if(!seg._r0){
-        /* recetor avançado (ex.: PL) recebe na sua profundidade de role, não recua para a bola */
-        if(rd.y0!=null&&rd.y0<seg.b.y-0.02){seg.b.y=rd.y0;}
+        /* recetor avançado recebe em profundidade — rutura limitada (sem saltos irreais) */
+        if(rd.y0!=null&&rd.y0<seg.b.y-0.02){seg.b.y=Math.max(rd.y0,Math.min(seg.b.y,0.19));}
         seg._r0={x:rd.x,y:rd.y};
         /* corrida longa → passe flutuado: ninguém corre a 1000 à hora */
         const run=Math.hypot(seg.b.x-rd.x,seg.b.y-rd.y);
@@ -3479,8 +3494,8 @@ function rpFrame(now){
           RP.dur+=add;
         }
       }
-      const k=(t-seg.t0)/(seg.t1-seg.t0),e2=Math.min(1,k*1.12);
-      const ee=e2<0.5?2*e2*e2:1-Math.pow(-2*e2+2,2)/2;
+      const k=(t-seg.t0)/(seg.t1-seg.t0),e2=Math.min(1,k*1.06);
+      const ee=e2*e2*(3-2*e2); /* smoothstep: arranque e chegada suaves, sem pico brusco */
       rd.x=seg._r0.x+(seg.b.x-seg._r0.x)*ee;
       rd.y=seg._r0.y+(seg.b.y-seg._r0.y)*ee;
     }
@@ -3506,6 +3521,9 @@ function rpFrame(now){
     for(const df of RP.defs)all.push({o:df,lock:df===presser,px:0,py:0});
     for(let i2=0;i2<all.length;i2++)for(let j2=i2+1;j2<all.length;j2++){
       const a2=all[i2],b2=all[j2];
+      /* marcador↔marcado: isentos da separação (a marcação é colada por natureza) */
+      if(a2.o.mk!=null&&b2.o.id===a2.o.mk)continue;
+      if(b2.o.mk!=null&&a2.o.id===b2.o.mk)continue;
       const ddx=b2.o.x-a2.o.x,ddy=b2.o.y-a2.o.y,dd=Math.hypot(ddx,ddy);
       if(dd<0.042&&dd>1e-4){
         const push=(0.042-dd)*0.35,nx=ddx/dd,ny=ddy/dd;
@@ -3538,7 +3556,8 @@ function rpFrame(now){
   }
   /* tetos defensivos reaplicados após a separação: ninguém é empurrado para fora da sua faixa */
   for(const df of RP.defs){
-    if(df.y<df.yCap)df.y=df.yCap;
+    const cap2=df._chase?0.06:df.yCap;
+    if(df.y<cap2)df.y=cap2;
     if(df.yMax!=null&&df.y>df.yMax)df.y=df.yMax;
   }
   /* câmara segue a jogada */
