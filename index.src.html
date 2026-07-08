@@ -3213,6 +3213,9 @@ function rpStart(d){
     /* recalcular RP.recv com os pontos corrigidos */
     RP.recv={};
     RP.segs.forEach(sg=>{if(!sg.carry&&!sg.shot){(RP.recv[sg.b.id]=RP.recv[sg.b.id]||[]).push({si:sg.i,x:sg.b.x,y:sg.b.y});}});
+    /* a bola nasce nos pés do 1.º portador (posição pós-reespaçamento) */
+    {const st=RP.dots.find(o=>o.id===RP.segs[0].a.id);
+     if(st){RP.segs[0].a.x=st.x;RP.segs[0].a.y=st.y;RP.b0.x=st.x;}}
     /* âncora da basculação = baricentro vertical da equipa (não o GR) */
     RP.b0.y=nn.reduce((s,o)=>s+o.y0,0)/nn.length;
   }
@@ -3332,6 +3335,7 @@ function rpArc(C,cu,cv,ru,rv,keep,col){
   C.stroke();
 }
 function rpGoalDraw(C,front){
+  rpGoalBack(C,front); /* baliza do lado de cá (fundo do ecrã) */
   const GL=0.415,GR=0.585,GH=0.055,BK=-0.045;
   const pl=rpP(GL,0,0),pr=rpP(GR,0,0),tl=rpP(GL,0,GH),tr=rpP(GR,0,GH);
   const bl=rpP(GL,BK,0),br=rpP(GR,BK,0),btl=rpP(GL,BK,GH*0.72),btr=rpP(GR,BK,GH*0.72);
@@ -3350,24 +3354,6 @@ function rpGoalDraw(C,front){
   }else{
     /* postes + trave */
     C.strokeStyle="rgba(255,255,255,.95)";C.lineWidth=3;C.lineCap="round";
-    C.beginPath();C.moveTo(pl.x,pl.y);C.lineTo(tl.x,tl.y);C.lineTo(tr.x,tr.y);C.lineTo(pr.x,pr.y);C.stroke();C.lineCap="butt";
-  }
-}
-function rpGoalBack(C,front){
-  const GL=0.415,GR=0.585,GH=0.052,BK=1.045; /* atrás da linha de fundo (v=1) */
-  const pl=rpP(GL,1,0),pr=rpP(GR,1,0),tl=rpP(GL,1,GH),tr=rpP(GR,1,GH);
-  const bl=rpP(GL,BK,0),br=rpP(GR,BK,0),btl=rpP(GL,BK,GH*0.72),btr=rpP(GR,BK,GH*0.72);
-  if(!front){
-    C.strokeStyle="rgba(255,255,255,.24)";C.lineWidth=0.7;
-    for(let i=0;i<=8;i++){const u=GL+(GR-GL)*i/8;
-      const t=rpP(u,1,GH),b2=rpP(u,BK,0.001),m2=rpP(u,BK,GH*0.72);
-      C.beginPath();C.moveTo(t.x,t.y);C.lineTo(m2.x,m2.y);C.lineTo(b2.x,b2.y);C.stroke();}
-    for(let j=0;j<=4;j++){const h=GH*0.72*j/4;const l2=rpP(GL,BK,h),r2=rpP(GR,BK,h);
-      C.beginPath();C.moveTo(l2.x,l2.y);C.lineTo(r2.x,r2.y);C.stroke();}
-    C.beginPath();C.moveTo(tl.x,tl.y);C.lineTo(btl.x,btl.y);C.lineTo(bl.x,bl.y);C.lineTo(pl.x,pl.y);C.stroke();
-    C.beginPath();C.moveTo(tr.x,tr.y);C.lineTo(btr.x,btr.y);C.lineTo(br.x,br.y);C.lineTo(pr.x,pr.y);C.stroke();
-  }else{
-    C.strokeStyle="rgba(255,255,255,.9)";C.lineWidth=2.5;C.lineCap="round";
     C.beginPath();C.moveTo(pl.x,pl.y);C.lineTo(tl.x,tl.y);C.lineTo(tr.x,tr.y);C.lineTo(pr.x,pr.y);C.stroke();C.lineCap="butt";
   }
 }
@@ -3418,7 +3404,11 @@ function rpFrame(now){
   /* bola */
   let bx,bv,bh=0,seg=null,shotK=0;
   for(const s of RP.segs){if(t>=s.t0&&t<s.t1){seg=s;break}}
-  if(t<RP.segs[0].t0){const a=RP.segs[0].a;bx=a.x;bv=a.y;}
+  if(t<RP.segs[0].t0){
+    const st=RP.dots.find(o=>o.id===RP.segs[0].a.id);
+    if(st){bx=st.x;bv=st.y;RP.segs[0].a.x=st.x;RP.segs[0].a.y=st.y;} /* colada aos pés dele */
+    else{const a=RP.segs[0].a;bx=a.x;bv=a.y;}
+  }
   else if(seg){
     const k=(t-seg.t0)/(seg.t1-seg.t0);
     const e=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
