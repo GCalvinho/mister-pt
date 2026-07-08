@@ -1,4 +1,4 @@
-# ⚽ Mister 11
+# ⚽ Míster PT
 
 Football Manager Lite das ligas portuguesas — jogo de browser instalável como app (PWA).
 
